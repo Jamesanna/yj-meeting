@@ -119,7 +119,7 @@ const App: React.FC = () => {
         localStorage.setItem('gw_session', JSON.stringify(match));
 
         // --- 新增：如果角色是 admin，自動登入管理後台 ---
-        if (match.role === 'admin') {
+        if (match.role?.startsWith('admin')) {
           setIsAdminLoggedIn(true);
         }
 
@@ -170,7 +170,7 @@ const App: React.FC = () => {
           setGoogleUser(stillExists);
           setCurrentUser(stillExists);
           // 關鍵修正：若重載頁面時帳號具備 admin 權限，自動維持管理員狀態
-          if (stillExists.role === 'admin') {
+          if (stillExists.role?.startsWith('admin')) {
             setIsAdminLoggedIn(true);
           }
         } else {
@@ -182,7 +182,7 @@ const App: React.FC = () => {
         try {
           const userData = JSON.parse(persistedAdmin);
           const latestUsers = await dbService.getUsers();
-          const latestAdmins = latestUsers.filter(u => u.role === 'admin');
+          const latestAdmins = latestUsers.filter(u => u.role?.startsWith('admin'));
           const stillValid = latestAdmins.find(a => a.id === userData.id);
           if (stillValid) {
             setCurrentUser(stillValid);
@@ -213,7 +213,7 @@ const App: React.FC = () => {
 
   const handleAdminLogin = async () => {
     const allUsers = await dbService.getUsers();
-    const admins = allUsers.filter(u => u.role === 'admin');
+    const admins = allUsers.filter(u => u.role?.startsWith('admin'));
     const match = admins.find(a => a.email === loginAccount);
     if (match && match.password === loginPassword) {
       setIsAdminLoggedIn(true);
@@ -493,7 +493,7 @@ const App: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                if (currentUser?.role === 'admin') {
+                if (currentUser?.role?.startsWith('admin')) {
                   setIsAdminLoggedIn(true);
                 } else {
                   setIsLoginView(true);

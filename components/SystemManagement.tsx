@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { dbService } from '../services/mockDb';
-import { User, Announcement } from '../types';
+import { User, Announcement, UserRole } from '../types';
 import { VERSION, SYSTEM_TITLE } from '../constants';
 import {
   Plus,
@@ -92,7 +92,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [annContent, setAnnContent] = useState('');
   const [annActive, setAnnActive] = useState(true);
   const [resetPwd, setResetPwd] = useState('');
-  const [userRole, setUserRole] = useState<'admin' | 'user'>('user');
+  const [userRole, setUserRole] = useState<UserRole>('user');
   const [deptNameInput, setDeptNameInput] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -105,17 +105,27 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
-      version: 'v2.205',
-      title: '管理權限位階邏輯修正',
+      version: 'v2.206',
+      title: '雙軌權限位階管理上線',
       type: 'feature',
       date: '2026-02-09',
       logs: [
-        '修正 L1 最高管理員識別：原以 ID 識別導致 Firebase 環境失效，現改為以 Email (sysop) 作為 L1 唯一識別碼，確保權限位階正確顯示。',
-        '優化權限下拉選單：在新增/編輯人員時，明確區分一般同仁與次管理員 (L2)，提供更直覺的角色指派操作。'
+        '整合管理員層級：在編輯人員時，現在可明確指派「最高管理員 (L1)」或「系統管理員 (L2)」。',
+        '權限安全遮蔽：修正位階識別機制，確保 L2 次管理員無法編輯所有 L1 重點帳號，維持管理層級嚴謹性。'
       ]
     },
     {
-      version: 'v2.204',
+      version: 'v2.206',
+      title: '雙軌權限位階管理實踐',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '整合 L1/L2 權限切換：在新增或編輯人員時，系統現在提供「最高管理員 (L1)」與「次管理員 (L2)」兩種選項。',
+        '識別邏輯強化：修正 L1 位階識別，支援以角色 (admin_l1) 或 Email (sysop) 進行雙重檢核，確保權限位階在各環境下均能正確運作。'
+      ]
+    },
+    {
+      version: 'v2.205',
       title: '部門管理與關聯更新修復',
       type: 'fix',
       date: '2026-02-09',
@@ -879,15 +889,15 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                         <td className="px-10 py-6">{user.name}</td>
                         {activeSubTab === 'staff_management' && <td className="px-10 py-6 text-slate-400">{user.department}</td>}
                         <td className="px-10 py-6">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${user.email === 'sysop' ? 'bg-orange-600 text-white' : user.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
-                            {user.email === 'sysop' ? '最高管理員 (L1)' : user.role === 'admin' ? '系統管理員 (L2)' : '一般同仁'}
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${user.role === 'admin_l1' || user.email === 'sysop' ? 'bg-orange-600 text-white' : user.role === 'admin_l2' ? 'bg-purple-100 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
+                            {user.role === 'admin_l1' || user.email === 'sysop' ? '最高管理員 (L1)' : user.role === 'admin_l2' ? '系統管理員 (L2)' : '一般同仁'}
                           </span>
                         </td>
                         <td className="px-10 py-6 text-slate-400">{user.email || '---'}</td>
                         <td className="px-10 py-6 text-center">
                           <div className="flex justify-center space-x-2">
-                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer ${user.email === 'sysop' && currentUser.email !== 'sysop' ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                            <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.email === 'sysop' ? 'invisible pointer-events-none' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer ${(user.role === 'admin_l1' || user.email === 'sysop') && (currentUser.role !== 'admin_l1' && currentUser.email !== 'sysop') ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.role === 'admin_l1' || user.email === 'sysop' ? 'invisible pointer-events-none' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
                           </div>
                         </td>
                       </tr>
@@ -937,8 +947,8 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90 ${user.email === 'sysop' && currentUser.email !== 'sysop' ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-red-50 rounded-xl text-red-400 active:scale-90 ${user.email === 'sysop' ? 'hidden' : ''}`}><Trash2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90 ${(user.role === 'admin_l1' || user.email === 'sysop') && (currentUser.role !== 'admin_l1' && currentUser.email !== 'sysop') ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-red-50 rounded-xl text-red-400 active:scale-90 ${user.role === 'admin_l1' || user.email === 'sysop' ? 'hidden' : ''}`}><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -973,9 +983,10 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                   <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">姓名</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputStyle} /></div>
                   <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email (用於驗證)</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputStyle} /></div>
                   <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">帳號權限</label>
-                    <select value={userRole} onChange={(e) => setUserRole(e.target.value as 'admin' | 'user')} className={inputStyle + " custom-select"}>
+                    <select value={userRole} onChange={(e) => setUserRole(e.target.value as UserRole)} className={inputStyle + " custom-select"}>
                       <option value="user">一般同仁 (僅限預約)</option>
-                      <option value="admin">系統管理員 (次管理員 L2)</option>
+                      <option value="admin_l1">最高管理員 (L1 全權限)</option>
+                      <option value="admin_l2">系統管理員 (L2 次管理員)</option>
                     </select>
                   </div>
                   {activeSubTab === 'staff_management' && (

@@ -148,7 +148,7 @@ export const dbService = {
     const users = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
     if (users.length === 0) {
       // 初始化預設管理員
-      const defaultAdmin = { email: 'sysop', name: '系統管理員', role: 'admin' as const, password: 'Aa123456' };
+      const defaultAdmin = { email: 'sysop', name: '系統管理員', role: 'admin_l1' as const, password: 'Aa123456' };
       const docRef = await addDoc(collection(db, COLLECTIONS.USERS), defaultAdmin);
       return [{ ...defaultAdmin, id: docRef.id }];
     }
