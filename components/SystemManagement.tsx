@@ -105,6 +105,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.203',
+      title: '虛擬資料維護邏輯修正',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修復「No document to update」錯誤：將公告更新改為 Upsert 機制，即便初始虛擬公告尚未寫入實體資料庫，現在也能直接點擊編輯並成功儲存。',
+        '優化底層資料庫連結穩定性，確保雲端與本地端視圖狀態同步無誤。'
+      ]
+    },
+    {
       version: 'v2.202',
       title: '公告管理邏輯與狀態修復',
       type: 'fix',

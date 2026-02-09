@@ -112,7 +112,7 @@ export const dbService = {
   },
   updateAnnouncement: async (id: string, updates: Partial<Announcement>) => {
     const docRef = doc(db, COLLECTIONS.ANNOUNCEMENTS, id);
-    await updateDoc(docRef, updates);
+    await setDoc(docRef, updates, { merge: true });
   },
   deleteAnnouncement: async (id: string) => {
     await deleteDoc(doc(db, COLLECTIONS.ANNOUNCEMENTS, id));
