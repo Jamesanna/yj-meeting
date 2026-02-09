@@ -105,6 +105,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.196',
+      title: '研發文件同步自動化',
+      type: 'docs',
+      date: '2026-02-09',
+      logs: [
+        '將後台維護之改版紀錄同步鏡射至專案根目錄之 README.md。',
+        '確保外部開發文件與系統內部之資訊一致性，便於團隊協作參考。'
+      ]
+    },
+    {
       version: 'v2.195',
       title: '後台管理穩定性修復',
       type: 'fix',
