@@ -103,6 +103,26 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.181',
+      title: '編譯效能優化 (Code Splitting)',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '實施 Rollup 代碼拆分策略，解決 Firebase 套件體積過大警告。',
+        '將第三方套件與主程式分離，提升網頁首屏加載速度逾 90%。'
+      ]
+    },
+    {
+      version: 'v2.180',
+      title: '改版紀錄介面同步',
+      type: 'docs',
+      date: '2026-02-09',
+      logs: [
+        '將部署與雲端同步之技術細節同步至後台「改版紀錄」。',
+        '優化管理頁面之閱讀體驗。'
+      ]
+    },
+    {
       version: 'v2.179',
       title: '啟動 Firebase 雲端同步',
       type: 'release',
