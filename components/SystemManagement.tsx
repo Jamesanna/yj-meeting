@@ -105,6 +105,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.201',
+      title: '語系在地化與權限位階強化',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '週次顯示在地化：前台與後台的行程清單，週次由英文縮寫改為中文（如：週一、週二）。',
+        '管理權限分級：明確劃分「最高管理員 (Level 1)」與「次管理員 (Level 2)」。',
+        '安全權限限制：位階二帳號無法編輯、修改或刪除位階一 (sysop) 帳號，確保核心權限不被變動。'
+      ]
+    },
+    {
       version: 'v2.200',
       title: '月度預約總覽清單上線',
       type: 'feature',
@@ -802,15 +813,15 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                         <td className="px-10 py-6">{user.name}</td>
                         {activeSubTab === 'staff_management' && <td className="px-10 py-6 text-slate-400">{user.department}</td>}
                         <td className="px-10 py-6">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
-                            {user.role === 'admin' ? '系統管理員' : '一般同仁'}
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${user.id === 'admin_sysop' ? 'bg-orange-600 text-white' : user.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
+                            {user.id === 'admin_sysop' ? '最高管理員 (L1)' : user.role === 'admin' ? '系統管理員 (L2)' : '一般同仁'}
                           </span>
                         </td>
                         <td className="px-10 py-6 text-slate-400">{user.email || '---'}</td>
                         <td className="px-10 py-6 text-center">
                           <div className="flex justify-center space-x-2">
-                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                            <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.id === 'admin_sysop' ? 'invisible' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer ${user.id === 'admin_sysop' && currentUser.id !== 'admin_sysop' ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.id === 'admin_sysop' ? 'invisible pointer-events-none' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
                           </div>
                         </td>
                       </tr>
@@ -860,7 +871,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className="p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90"><Edit2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90 ${user.id === 'admin_sysop' && currentUser.id !== 'admin_sysop' ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-4 h-4" /></button>
                         <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-red-50 rounded-xl text-red-400 active:scale-90 ${user.id === 'admin_sysop' ? 'hidden' : ''}`}><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>

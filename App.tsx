@@ -38,6 +38,8 @@ import { format, getDay } from 'date-fns';
 import { auth } from './services/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
+const WEEKDAYS_CH = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+
 const App: React.FC = () => {
   // --- States ---
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -388,7 +390,7 @@ const App: React.FC = () => {
                           <tr key={b.id} className={`transition-colors ${b.date === format(selectedDate, 'yyyy-MM-dd') ? 'bg-orange-50/50' : 'hover:bg-slate-50'}`}>
                             <td className="px-8 py-4 text-center">
                               <div className="flex flex-col items-center">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(b.date), 'EEE')}</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase">{WEEKDAYS_CH[getDay(new Date(b.date))]}</span>
                                 <span className="text-sm font-black text-slate-700">{format(new Date(b.date), 'dd')}</span>
                               </div>
                             </td>
@@ -415,7 +417,7 @@ const App: React.FC = () => {
                         <div className="flex justify-between items-start">
                           <div className="flex items-center space-x-2">
                             <div className="bg-slate-900 text-white px-2 py-1 rounded-md text-[10px] font-black">{format(new Date(b.date), 'MM/dd')}</div>
-                            <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black">{b.startTime} - {b.endTime}</div>
+                            <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black">{WEEKDAYS_CH[getDay(new Date(b.date))]} {b.startTime} - {b.endTime}</div>
                           </div>
                           <div className="flex items-center space-x-2">
                             <button onClick={() => { setSelectedDate(new Date(b.date)); setEditingBooking(b); setShowBookingModal(true); }} className="p-5 text-slate-500 bg-slate-50 rounded-xl active:scale-90"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
@@ -529,7 +531,7 @@ const App: React.FC = () => {
                     <div key={b.id} className={`bg-white border p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] flex items-center space-x-4 md:space-x-5 hover:border-orange-200 hover:bg-orange-50/10 transition-all group ${b.date === format(selectedDate, 'yyyy-MM-dd') ? 'border-orange-400 ring-2 ring-orange-100' : 'border-slate-100'}`}>
                       <div className="flex flex-col items-center justify-center bg-slate-900 text-white rounded-xl py-2 px-3 shrink-0">
                         <span className="text-[9px] font-bold opacity-60 uppercase leading-none">{format(bDate, 'MM/dd')}</span>
-                        <span className="text-[10px] font-black mt-1 uppercase leading-none">{format(bDate, 'EEE')}</span>
+                        <span className="text-[10px] font-black mt-1 uppercase leading-none">{WEEKDAYS_CH[getDay(bDate)]}</span>
                       </div>
                       <div className={`w-16 md:w-20 py-2.5 md:py-3 ${isPast ? 'bg-slate-100' : 'bg-orange-50'} rounded-2xl flex flex-col items-center group-hover:bg-orange-600 transition-colors shrink-0`}>
                         <span className={`text-[9px] md:text-[10px] font-medium ${isPast ? 'text-slate-400' : 'text-orange-600'} group-hover:text-white`}>{b.startTime}</span>
