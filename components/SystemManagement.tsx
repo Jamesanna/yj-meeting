@@ -103,6 +103,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.185',
+      title: '編譯架構深度優化',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修正動態與靜態匯入衝突問題，達成編譯過程 0 警告 (Zero Warnings)。',
+        '優化模組依賴鏈，確保 Firebase 服務加載之穩定性。'
+      ]
+    },
+    {
       version: 'v2.184',
       title: '正式啟用 Google 帳號實名驗證',
       type: 'feature',

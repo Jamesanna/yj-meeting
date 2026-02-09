@@ -97,9 +97,6 @@ const App: React.FC = () => {
   const handleGoogleLogin = async () => {
     setWhiteListError('');
     try {
-      const { auth } = await import('./services/firebase');
-      const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const userEmail = result.user.email;
