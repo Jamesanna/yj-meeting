@@ -1,5 +1,5 @@
 
-export const VERSION = "V2.213";
+export const VERSION = "V3.001";
 export const SYSTEM_TITLE = "羿鈞科技會議室預約系統";
 
 export const TIME_SLOTS = [

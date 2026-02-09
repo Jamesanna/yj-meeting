@@ -105,6 +105,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [logLimit, setLogLimit] = useState(10);
   const [logDateFilter, setLogDateFilter] = useState('');
   const [logMonthFilter, setLogMonthFilter] = useState(format(new Date(), 'yyyy-MM'));
+  const [changelogTab, setChangelogTab] = useState<'v3' | 'v2'>('v3');
 
   const filteredUsers = useMemo(() => {
     if (activeSubTab === 'staff_management') {
@@ -122,6 +123,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const isL1 = useMemo(() => currentUser.role === 'admin_l1' || currentUser.email === 'sysop', [currentUser]);
 
   const changelogs = [
+    {
+      version: 'v3.001',
+      title: '系統主版本升級：邁向 V3 全新架構',
+      type: 'major',
+      date: '2026-02-09',
+      logs: [
+        '主版本號晉升：系統正式由 V2 進入 V3 階段，代表核心功能已趨於成熟與穩定。',
+        '改版紀錄分層管理：新增「版本切換」分頁功能，將龐大的更新日誌按主版本（V3 / V2）進行歸類，提升檢索效率。',
+        '架構優化預備：為後續的大型功能升級奠定版本管理基礎。'
+      ]
+    },
     {
       version: 'v2.213',
       title: '系統安全性與權限控管強化',
@@ -904,25 +916,32 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
               {activeInfoView === 'changelog' && (
                 <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in pb-20">
-                  {changelogs.map((log, idx) => (
-                    <div key={log.version} className="bg-white border-2 border-slate-50 rounded-3xl p-8 shadow-sm relative group hover:border-blue-100 transition-all">
-                      <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-2">
-                        <div className="flex items-center space-x-4">
-                          <span className="bg-blue-50 text-blue-600 text-xs font-black px-4 py-1.5 rounded-full border border-blue-100">{log.version}</span>
-                          <h4 className="text-2xl font-black text-slate-800">{log.title}</h4>
+                  <div className="flex justify-center mb-10 p-1.5 bg-slate-100 rounded-2xl w-fit mx-auto">
+                    <button type="button" onClick={() => setChangelogTab('v3')} className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all cursor-pointer ${changelogTab === 'v3' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>V3 系列</button>
+                    <button type="button" onClick={() => setChangelogTab('v2')} className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all cursor-pointer ${changelogTab === 'v2' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>V2 系列</button>
+                  </div>
+
+                  {changelogs
+                    .filter(log => log.version.toLowerCase().startsWith(changelogTab))
+                    .map((log, idx) => (
+                      <div key={log.version} className="bg-white border-2 border-slate-50 rounded-3xl p-8 shadow-sm relative group hover:border-blue-100 transition-all">
+                        <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-2">
+                          <div className="flex items-center space-x-4">
+                            <span className={`text-xs font-black px-4 py-1.5 rounded-full border ${log.type === 'major' ? 'bg-indigo-600 text-white border-indigo-700 shadow-md shadow-indigo-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>{log.version}</span>
+                            <h4 className="text-2xl font-black text-slate-800">{log.title}</h4>
+                          </div>
+                          <span className="text-xs text-slate-400 font-bold">{log.date}</span>
                         </div>
-                        <span className="text-xs text-slate-400 font-bold">{log.date}</span>
+                        <ul className="space-y-4">
+                          {log.logs.map((l, i) => (
+                            <li key={i} className="flex items-start text-base text-slate-600 font-bold">
+                              <ArrowRight className="w-5 h-5 mr-4 mt-0.5 text-blue-200 shrink-0" />
+                              {l}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <ul className="space-y-4">
-                        {log.logs.map((l, i) => (
-                          <li key={i} className="flex items-start text-base text-slate-600 font-bold">
-                            <ArrowRight className="w-5 h-5 mr-4 mt-0.5 text-blue-200 shrink-0" />
-                            {l}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>
