@@ -103,6 +103,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.187',
+      title: '驗證安全性邏輯確認',
+      type: 'security',
+      date: '2026-02-09',
+      logs: [
+        '確認 Google Auth 支援信箱配置，確保不影響 Workspace 帳號登入相容性。',
+        '強化後台白名單 (Whitelist) 跨網域驗證邏輯之穩定性。'
+      ]
+    },
+    {
       version: 'v2.186',
       title: '驗證系統最終調校',
       type: 'docs',
