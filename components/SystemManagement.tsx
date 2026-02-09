@@ -3,11 +3,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { dbService } from '../services/mockDb';
 import { User, Announcement } from '../types';
 import { VERSION, SYSTEM_TITLE } from '../constants';
-import { 
-  Plus, 
-  Trash2, 
-  Edit2, 
-  ShieldCheck, 
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  ShieldCheck,
   Save,
   X,
   UserCheck,
@@ -66,7 +66,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
     showWifiInfo: true,
     requireGoogleLogin: true
   });
-  
+
   // 動態設定編輯狀態
   const [tempAllowedDomain, setTempAllowedDomain] = useState('');
   const [tempCorpSsid, setTempCorpSsid] = useState('');
@@ -81,7 +81,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editingDeptIndex, setEditingDeptIndex] = useState<number | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'user'|'ann'|'dept', index?: number} | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'user' | 'ann' | 'dept', index?: number } | null>(null);
 
   // UI 輔助
   const [showToast, setShowToast] = useState(false);
@@ -91,7 +91,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [department, setDepartment] = useState('');
   const [annContent, setAnnContent] = useState('');
   const [annActive, setAnnActive] = useState(true);
-  const [resetPwd, setResetPwd] = useState(''); 
+  const [resetPwd, setResetPwd] = useState('');
   const [deptNameInput, setDeptNameInput] = useState('');
   const [error, setError] = useState('');
 
@@ -102,6 +102,47 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   }, [users, activeSubTab]);
 
   const changelogs = [
+    {
+      version: 'v2.179',
+      title: '啟動 Firebase 雲端同步',
+      type: 'release',
+      date: '2026-02-09',
+      logs: [
+        '正式對接 Firebase Firestore 雲端資料庫。',
+        '實現跨裝置即時資料同步，讓所有使用者皆可看到最新的預約資訊。'
+      ]
+    },
+    {
+      version: 'v2.178',
+      title: '發佈至 Github Pages',
+      type: 'release',
+      date: '2026-02-09',
+      logs: [
+        '完成生產環境打包並部署至 Github Pages。',
+        '優化靜態資源讀取路徑。'
+      ]
+    },
+    {
+      version: 'v2.177',
+      title: 'Firebase 設定整合',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '整合 Firebase Web 設定金鑰與安全性規則。',
+        '建立雲端資料庫存取權限控管基礎。'
+      ]
+    },
+    {
+      version: 'v2.174 - v2.176',
+      title: '部署環境優化與準備',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '更新 Vite 編譯設定，修正 Github Pages 子路徑資源讀取錯誤。',
+        '安裝 Firebase SDK 相關套件。',
+        '建立 Github 專案儲存庫並完成初次連線推送。'
+      ]
+    },
     {
       version: 'v2.173',
       title: '系統概覽功能補強',
@@ -150,7 +191,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
     setAnnouncements(aArr);
     setDepartments(dArr);
     setSysSettings(settings);
-    
+
     // 初始化編輯值
     setTempAllowedDomain(settings.allowedDomain);
     setTempCorpSsid(settings.corpSsid);
@@ -158,7 +199,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
     setTempGuestPwd(settings.guestPwd);
     setTempShowQuickBookQr(settings.showQuickBookQr);
     setTempShowWifiInfo(settings.showWifiInfo);
-    
+
     if (onDataUpdate) onDataUpdate();
   };
 
@@ -170,8 +211,8 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  const askDelete = (id: string, type: 'user'|'ann'|'dept', index?: number) => {
-    setItemToDelete({id, type, index});
+  const askDelete = (id: string, type: 'user' | 'ann' | 'dept', index?: number) => {
+    setItemToDelete({ id, type, index });
     setDeleteConfirmOpen(true);
   };
 
@@ -187,9 +228,9 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
       } else if (type === 'dept' && typeof index === 'number') {
         const deptName = departments[index];
         if (users.some(u => u.department === deptName)) {
-           alert(`部門『${deptName}』仍有成員，無法刪除。`);
-           setDeleteConfirmOpen(false);
-           return;
+          alert(`部門『${deptName}』仍有成員，無法刪除。`);
+          setDeleteConfirmOpen(false);
+          return;
         }
         const newDepts = departments.filter((_, i) => i !== index);
         await dbService.updateDepartments(newDepts);
@@ -238,12 +279,12 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   };
 
   const handleUpdateSysSettings = async () => {
-    await dbService.updateSystemSettings({ 
+    await dbService.updateSystemSettings({
       allowedDomain: tempAllowedDomain,
       corpSsid: tempCorpSsid,
       guestSsid: tempGuestSsid,
       guestPwd: tempGuestPwd,
-      showQuickBookQr: tempShowQuickBookQr, 
+      showQuickBookQr: tempShowQuickBookQr,
       showWifiInfo: tempShowWifiInfo
     });
     await loadData();
@@ -256,36 +297,36 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
     <div className="space-y-6 max-w-full relative">
       {showToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 fade-in">
-           <div className="bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border border-white/20">
-              <CheckCircle2 className="w-6 h-6 text-emerald-200" />
-              <span className="font-bold text-lg">{toastMessage}</span>
-           </div>
+          <div className="bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border border-white/20">
+            <CheckCircle2 className="w-6 h-6 text-emerald-200" />
+            <span className="font-bold text-lg">{toastMessage}</span>
+          </div>
         </div>
       )}
 
       {deleteConfirmOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in">
-           <div className="bg-white rounded-[2rem] p-8 max-w-xs w-full shadow-2xl border border-red-100 animate-in zoom-in-95 text-center">
-              <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-6" />
-              <h3 className="text-xl font-black text-slate-800 mb-3">確認執行刪除？</h3>
-              <p className="text-sm text-slate-500 mb-8 leading-relaxed">執行後資料將無法恢復。</p>
-              <div className="flex flex-col space-y-3">
-                 <button onClick={executeDelete} className="w-full py-4 bg-red-600 text-white font-black rounded-xl active:scale-95">確認永久刪除</button>
-                 <button onClick={() => setDeleteConfirmOpen(false)} className="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-xl">取消</button>
-              </div>
-           </div>
+          <div className="bg-white rounded-[2rem] p-8 max-w-xs w-full shadow-2xl border border-red-100 animate-in zoom-in-95 text-center">
+            <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-6" />
+            <h3 className="text-xl font-black text-slate-800 mb-3">確認執行刪除？</h3>
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed">執行後資料將無法恢復。</p>
+            <div className="flex flex-col space-y-3">
+              <button onClick={executeDelete} className="w-full py-4 bg-red-600 text-white font-black rounded-xl active:scale-95">確認永久刪除</button>
+              <button onClick={() => setDeleteConfirmOpen(false)} className="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-xl">取消</button>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="bg-slate-100 p-1.5 rounded-2xl flex flex-wrap gap-1.5">
-          {[
-            { id: 'announcements', label: '公告管理', icon: Megaphone },
-            { id: 'staff_management', label: '員工管理', icon: UserCheck },
-            { id: 'admins', label: '系統帳號', icon: ShieldCheck },
-            { id: 'info', label: '系統資訊', icon: Monitor },
-          ].map(tab => (
-            <button key={tab.id} type="button" onClick={() => { setActiveSubTab(tab.id as SubTab); setActiveStaffSubView('list'); }} className={`flex-[1_0_calc(50%-6px)] md:flex-1 flex items-center justify-center space-x-2 px-3 py-3 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer ${activeSubTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><tab.icon className="w-4 h-4 pointer-events-none" /><span className="text-[12px] md:text-sm pointer-events-none">{tab.label}</span></button>
-          ))}
+        {[
+          { id: 'announcements', label: '公告管理', icon: Megaphone },
+          { id: 'staff_management', label: '員工管理', icon: UserCheck },
+          { id: 'admins', label: '系統帳號', icon: ShieldCheck },
+          { id: 'info', label: '系統資訊', icon: Monitor },
+        ].map(tab => (
+          <button key={tab.id} type="button" onClick={() => { setActiveSubTab(tab.id as SubTab); setActiveStaffSubView('list'); }} className={`flex-[1_0_calc(50%-6px)] md:flex-1 flex items-center justify-center space-x-2 px-3 py-3 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer ${activeSubTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><tab.icon className="w-4 h-4 pointer-events-none" /><span className="text-[12px] md:text-sm pointer-events-none">{tab.label}</span></button>
+        ))}
       </div>
 
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 min-h-[60vh] flex flex-col overflow-hidden">
@@ -300,7 +341,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                 <button key={tab.id} type="button" onClick={() => setActiveInfoView(tab.id as InfoView)} className={`pb-4 px-1 flex items-center space-x-2 font-black border-b-4 transition-all text-sm md:text-base cursor-pointer ${activeInfoView === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}><tab.icon className="w-4 h-4 md:w-5 md:h-5 pointer-events-none" /><span>{tab.label}</span></button>
               ))}
             </div>
-            
+
             <div className="p-6 md:p-12">
               {activeInfoView === 'overview' && (
                 <div className="animate-in fade-in space-y-12">
@@ -308,7 +349,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                     <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner"><Monitor className="w-10 h-10 text-blue-600" /></div>
                     <h3 className="text-2xl font-black text-slate-800 mb-2">{SYSTEM_TITLE}</h3>
                     <p className="text-slate-400 font-bold mb-6">當前運行版本：{VERSION}</p>
-                    
+
                     {/* 系統外部正式網址顯示與複製區塊 */}
                     <div className="w-full max-w-md mx-auto bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between mb-8 shadow-inner">
                       <div className="flex items-center space-x-3 overflow-hidden">
@@ -318,7 +359,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                           <p className="text-xs font-bold text-slate-600 truncate">{window.location.origin + window.location.pathname}</p>
                         </div>
                       </div>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(window.location.origin + window.location.pathname);
@@ -380,15 +421,15 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
               {activeInfoView === 'manual' && (
                 <div className="max-w-4xl mx-auto space-y-12 animate-in slide-in-from-bottom-6 pb-20">
                   <h2 className="text-3xl font-black border-b-8 border-blue-600/10 pb-4 mb-12 text-slate-800">系統操作說明書</h2>
-                  
+
                   <section className="space-y-8">
                     {/* 模組 1：白名單 */}
                     <div className="bg-slate-50 p-8 rounded-3xl border-l-8 border-blue-500 shadow-sm">
                       <h3 className="text-xl font-bold mb-4 flex items-center text-blue-900"><ShieldCheck className="w-6 h-6 mr-3 text-blue-600" /> 企業身分驗證 (White List)</h3>
                       <p className="text-slate-600 leading-relaxed font-bold">
-                        為確保會議資源僅供公司內部同仁使用，系統採用 <strong>Google Workspace 帳號比對機制</strong>。<br/>
-                        1. 預約前必須點擊「登入」並完成 Google 驗證。<br/>
-                        2. 系統會擷取您的 Email 並與「員工管理」中的預錄名單進行比對。<br/>
+                        為確保會議資源僅供公司內部同仁使用，系統採用 <strong>Google Workspace 帳號比對機制</strong>。<br />
+                        1. 預約前必須點擊「登入」並完成 Google 驗證。<br />
+                        2. 系統會擷取您的 Email 並與「員工管理」中的預錄名單進行比對。<br />
                         3. 若您的信箱不在名單內，系統將主動攔截預約申請並顯示白名單錯誤。
                       </p>
                     </div>
@@ -397,7 +438,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                     <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
                       <h3 className="text-xl font-bold mb-4 flex items-center text-slate-800"><Globe className="w-6 h-6 mr-3 text-emerald-500" /> 內網自動辨識 (Internal Network)</h3>
                       <p className="text-slate-600 leading-relaxed font-bold">
-                        當同仁身處辦公室網路環境時，系統將自動啟動 <strong>Express Mode (快速預約模式)</strong>。<br/>
+                        當同仁身處辦公室網路環境時，系統將自動啟動 <strong>Express Mode (快速預約模式)</strong>。<br />
                         系統會偵測使用者連線來源網域與 SSID。若符合後台設定之「允許網域」或「員工 SSID」，系統會預設選中當天日期並在登入後自動帶出預約彈窗，減少操作步驟。
                       </p>
                     </div>
@@ -464,138 +505,138 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                 <button type="button" onClick={() => setActiveStaffSubView('departments')} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-black text-sm transition-all cursor-pointer ${activeStaffSubView === 'departments' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid className="w-4 h-4 pointer-events-none" /><span>部門設定</span></button>
               </div>
             )}
-            
+
             <div className="p-6 md:p-8 border-b flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
               <h3 className="text-xl font-black text-slate-800">
                 {activeSubTab === 'announcements' ? '內容公告維護' : activeSubTab === 'staff_management' ? (activeStaffSubView === 'list' ? '員工名單管理' : '部門架構設定') : '系統帳號管理'}
               </h3>
               <button type="button" onClick={() => { resetForm(); activeStaffSubView === 'departments' && activeSubTab === 'staff_management' ? setShowDeptModal(true) : setShowModal(true); }} className="px-10 py-3 bg-blue-600 text-white font-black rounded-2xl shadow-lg active:scale-95 flex items-center justify-center space-x-2 w-full md:w-auto cursor-pointer"><Plus className="w-5 h-5 pointer-events-none" /><span>新增項目</span></button>
             </div>
-            
-            <div className="flex-1 flex flex-col">
-               {/* 桌面版表格 (md 以上顯示) */}
-               <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b">
-                      <tr>
-                        {activeStaffSubView === 'departments' && activeSubTab === 'staff_management' ? (
-                          <>
-                            <th className="px-10 py-5">部門名稱</th>
-                            <th className="px-10 py-5">成員人數</th>
-                          </>
-                        ) : (
-                          <>
-                            <th className="px-10 py-5">{activeSubTab === 'announcements' ? '公告內容' : '名稱 / 姓名'}</th>
-                            {activeSubTab === 'staff_management' && <th className="px-10 py-5">部門</th>}
-                            <th className="px-10 py-5">{activeSubTab === 'announcements' ? '發佈狀態' : '帳號標識 (Email)'}</th>
-                          </>
-                        )}
-                        <th className="px-10 py-5 text-center">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y text-base font-bold text-slate-700">
-                      {activeSubTab === 'announcements' ? announcements.map(ann => (
-                        <tr key={ann.id} className="hover:bg-slate-50">
-                          <td className="px-10 py-6">{ann.content}</td>
-                          <td className="px-10 py-6">
-                             <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-black whitespace-nowrap ${ann.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
-                                {ann.isActive ? '顯示中' : '已停用'}
-                             </span>
-                          </td>
-                          <td className="px-10 py-6 text-center">
-                             <div className="flex justify-center space-x-2">
-                                <button type="button" onClick={() => { setEditingItem(ann); setAnnContent(ann.content); setAnnActive(ann.isActive); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                                <button type="button" onClick={() => askDelete(ann.id, 'ann')} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
-                             </div>
-                          </td>
-                        </tr>
-                      )) : activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? departments.map((dept, idx) => (
-                        <tr key={dept} className="hover:bg-slate-50">
-                          <td className="px-10 py-6">
-                             <div className="flex items-center space-x-3">
-                                <Building2 className="w-5 h-5 text-blue-500" />
-                                <span>{dept}</span>
-                             </div>
-                          </td>
-                          <td className="px-10 py-6 text-slate-400">
-                             {users.filter(u => u.department === dept).length} 位成員
-                          </td>
-                          <td className="px-10 py-6 text-center">
-                             <div className="flex justify-center space-x-2">
-                                <button type="button" onClick={() => { setEditingDeptIndex(idx); setDeptNameInput(dept); setShowDeptModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                                <button type="button" onClick={() => askDelete(dept, 'dept', idx)} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
-                             </div>
-                          </td>
-                        </tr>
-                      )) : filteredUsers.map(user => (
-                        <tr key={user.id} className="hover:bg-slate-50">
-                          <td className="px-10 py-6">{user.name}</td>
-                          {activeSubTab === 'staff_management' && <td className="px-10 py-6 text-slate-400">{user.department}</td>}
-                          <td className="px-10 py-6 text-slate-400">{user.email || '---'}</td>
-                          <td className="px-10 py-6 text-center">
-                             <div className="flex justify-center space-x-2">
-                                <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                                <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.id === 'admin_sysop' ? 'invisible' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
-                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-               </div>
 
-               {/* 手機版卡片 (md 以下顯示, 完全免拖拉) */}
-               <div className="md:hidden divide-y">
-                  {activeSubTab === 'announcements' ? announcements.map(ann => (
-                    <div key={ann.id} className="p-6 space-y-4">
-                       <div className="flex justify-between items-start">
-                          <span className={`px-4 py-1 rounded-full text-[10px] font-black whitespace-nowrap ${ann.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
-                             {ann.isActive ? '顯示中' : '已停用'}
+            <div className="flex-1 flex flex-col">
+              {/* 桌面版表格 (md 以上顯示) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b">
+                    <tr>
+                      {activeStaffSubView === 'departments' && activeSubTab === 'staff_management' ? (
+                        <>
+                          <th className="px-10 py-5">部門名稱</th>
+                          <th className="px-10 py-5">成員人數</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-10 py-5">{activeSubTab === 'announcements' ? '公告內容' : '名稱 / 姓名'}</th>
+                          {activeSubTab === 'staff_management' && <th className="px-10 py-5">部門</th>}
+                          <th className="px-10 py-5">{activeSubTab === 'announcements' ? '發佈狀態' : '帳號標識 (Email)'}</th>
+                        </>
+                      )}
+                      <th className="px-10 py-5 text-center">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y text-base font-bold text-slate-700">
+                    {activeSubTab === 'announcements' ? announcements.map(ann => (
+                      <tr key={ann.id} className="hover:bg-slate-50">
+                        <td className="px-10 py-6">{ann.content}</td>
+                        <td className="px-10 py-6">
+                          <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-black whitespace-nowrap ${ann.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+                            {ann.isActive ? '顯示中' : '已停用'}
                           </span>
-                          <div className="flex space-x-2">
-                             <button type="button" onClick={() => { setEditingItem(ann); setAnnContent(ann.content); setAnnActive(ann.isActive); setShowModal(true); }} className="p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90"><Edit2 className="w-4 h-4" /></button>
-                             <button type="button" onClick={() => askDelete(ann.id, 'ann')} className="p-4 bg-red-50 rounded-xl text-red-400 active:scale-90"><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                        <td className="px-10 py-6 text-center">
+                          <div className="flex justify-center space-x-2">
+                            <button type="button" onClick={() => { setEditingItem(ann); setAnnContent(ann.content); setAnnActive(ann.isActive); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => askDelete(ann.id, 'ann')} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
                           </div>
-                       </div>
-                       <p className="font-bold text-slate-700 leading-relaxed">{ann.content}</p>
-                    </div>
-                  )) : activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? (
-                    <div className="p-6 grid grid-cols-1 gap-4">
-                      {departments.map((dept, idx) => (
-                        <div key={dept} className="bg-white border-2 border-slate-100 p-6 rounded-3xl flex justify-between items-center shadow-sm">
-                           <div className="flex items-center space-x-4">
-                              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Building2 className="w-5 h-5" /></div>
-                              <div><h4 className="font-black text-slate-800">{dept}</h4><p className="text-[10px] text-slate-400 font-bold">{users.filter(u => u.department === dept).length} 位成員</p></div>
-                           </div>
-                           <div className="flex space-x-1">
-                              <button type="button" onClick={() => { setEditingDeptIndex(idx); setDeptNameInput(dept); setShowDeptModal(true); }} className="p-4 text-slate-400 active:scale-90"><Edit2 className="w-5 h-5" /></button>
-                              <button type="button" onClick={() => askDelete(dept, 'dept', idx)} className="p-4 text-red-400 active:scale-90"><Trash2 className="w-5 h-5" /></button>
-                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : filteredUsers.map(user => (
-                    <div key={user.id} className="p-6 space-y-4">
-                       <div className="flex justify-between items-start">
+                        </td>
+                      </tr>
+                    )) : activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? departments.map((dept, idx) => (
+                      <tr key={dept} className="hover:bg-slate-50">
+                        <td className="px-10 py-6">
                           <div className="flex items-center space-x-3">
-                             <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-500">{user.name.charAt(0)}</div>
-                             <div>
-                                <h4 className="font-black text-slate-800">{user.name}</h4>
-                                {user.department && <p className="text-[10px] text-blue-600 font-bold">{user.department}</p>}
-                             </div>
+                            <Building2 className="w-5 h-5 text-blue-500" />
+                            <span>{dept}</span>
                           </div>
-                          <div className="flex space-x-2">
-                             <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setShowModal(true); }} className="p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90"><Edit2 className="w-4 h-4" /></button>
-                             <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-red-50 rounded-xl text-red-400 active:scale-90 ${user.id === 'admin_sysop' ? 'hidden' : ''}`}><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                        <td className="px-10 py-6 text-slate-400">
+                          {users.filter(u => u.department === dept).length} 位成員
+                        </td>
+                        <td className="px-10 py-6 text-center">
+                          <div className="flex justify-center space-x-2">
+                            <button type="button" onClick={() => { setEditingDeptIndex(idx); setDeptNameInput(dept); setShowDeptModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => askDelete(dept, 'dept', idx)} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
                           </div>
-                       </div>
-                       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Email</p>
-                          <p className="text-sm font-bold text-slate-600 break-all">{user.email || '尚未設定'}</p>
-                       </div>
+                        </td>
+                      </tr>
+                    )) : filteredUsers.map(user => (
+                      <tr key={user.id} className="hover:bg-slate-50">
+                        <td className="px-10 py-6">{user.name}</td>
+                        {activeSubTab === 'staff_management' && <td className="px-10 py-6 text-slate-400">{user.department}</td>}
+                        <td className="px-10 py-6 text-slate-400">{user.email || '---'}</td>
+                        <td className="px-10 py-6 text-center">
+                          <div className="flex justify-center space-x-2">
+                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.id === 'admin_sysop' ? 'invisible' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 手機版卡片 (md 以下顯示, 完全免拖拉) */}
+              <div className="md:hidden divide-y">
+                {activeSubTab === 'announcements' ? announcements.map(ann => (
+                  <div key={ann.id} className="p-6 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <span className={`px-4 py-1 rounded-full text-[10px] font-black whitespace-nowrap ${ann.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+                        {ann.isActive ? '顯示中' : '已停用'}
+                      </span>
+                      <div className="flex space-x-2">
+                        <button type="button" onClick={() => { setEditingItem(ann); setAnnContent(ann.content); setAnnActive(ann.isActive); setShowModal(true); }} className="p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90"><Edit2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => askDelete(ann.id, 'ann')} className="p-4 bg-red-50 rounded-xl text-red-400 active:scale-90"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     </div>
-                  ))}
-               </div>
+                    <p className="font-bold text-slate-700 leading-relaxed">{ann.content}</p>
+                  </div>
+                )) : activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? (
+                  <div className="p-6 grid grid-cols-1 gap-4">
+                    {departments.map((dept, idx) => (
+                      <div key={dept} className="bg-white border-2 border-slate-100 p-6 rounded-3xl flex justify-between items-center shadow-sm">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Building2 className="w-5 h-5" /></div>
+                          <div><h4 className="font-black text-slate-800">{dept}</h4><p className="text-[10px] text-slate-400 font-bold">{users.filter(u => u.department === dept).length} 位成員</p></div>
+                        </div>
+                        <div className="flex space-x-1">
+                          <button type="button" onClick={() => { setEditingDeptIndex(idx); setDeptNameInput(dept); setShowDeptModal(true); }} className="p-4 text-slate-400 active:scale-90"><Edit2 className="w-5 h-5" /></button>
+                          <button type="button" onClick={() => askDelete(dept, 'dept', idx)} className="p-4 text-red-400 active:scale-90"><Trash2 className="w-5 h-5" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredUsers.map(user => (
+                  <div key={user.id} className="p-6 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-500">{user.name.charAt(0)}</div>
+                        <div>
+                          <h4 className="font-black text-slate-800">{user.name}</h4>
+                          {user.department && <p className="text-[10px] text-blue-600 font-bold">{user.department}</p>}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setShowModal(true); }} className="p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90"><Edit2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-red-50 rounded-xl text-red-400 active:scale-90 ${user.id === 'admin_sysop' ? 'hidden' : ''}`}><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Email</p>
+                      <p className="text-sm font-bold text-slate-600 break-all">{user.email || '尚未設定'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -636,11 +677,11 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
       {showDeptModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
-              <div className="px-8 py-6 border-b flex justify-between items-center"><h3 className="text-xl font-black">{editingDeptIndex !== null ? '編輯部門' : '新增部門'}</h3><button type="button" onClick={() => setShowDeptModal(false)} className="p-2 text-slate-300 hover:text-slate-800 cursor-pointer"><X className="w-6 h-6 pointer-events-none" /></button></div>
-              <div className="p-8 space-y-6">{error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border animate-shake"><AlertCircle className="w-4 h-4 mr-2" />{error}</div>}<div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">部門名稱</label><input type="text" autoFocus value={deptNameInput} onChange={(e) => setDeptNameInput(e.target.value)} className={inputStyle} /></div></div>
-              <div className="px-8 py-6 bg-slate-50 flex justify-end gap-3 border-t"><button type="button" onClick={() => setShowDeptModal(false)} className="px-6 py-2 text-slate-400 font-bold cursor-pointer">取消</button><button type="button" onClick={handleSaveDept} className="px-10 py-3 bg-blue-600 text-white font-black rounded-xl active:scale-95 flex-1 md:flex-none cursor-pointer text-sm">確認儲存</button></div>
-           </div>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+            <div className="px-8 py-6 border-b flex justify-between items-center"><h3 className="text-xl font-black">{editingDeptIndex !== null ? '編輯部門' : '新增部門'}</h3><button type="button" onClick={() => setShowDeptModal(false)} className="p-2 text-slate-300 hover:text-slate-800 cursor-pointer"><X className="w-6 h-6 pointer-events-none" /></button></div>
+            <div className="p-8 space-y-6">{error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border animate-shake"><AlertCircle className="w-4 h-4 mr-2" />{error}</div>}<div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">部門名稱</label><input type="text" autoFocus value={deptNameInput} onChange={(e) => setDeptNameInput(e.target.value)} className={inputStyle} /></div></div>
+            <div className="px-8 py-6 bg-slate-50 flex justify-end gap-3 border-t"><button type="button" onClick={() => setShowDeptModal(false)} className="px-6 py-2 text-slate-400 font-bold cursor-pointer">取消</button><button type="button" onClick={handleSaveDept} className="px-10 py-3 bg-blue-600 text-white font-black rounded-xl active:scale-95 flex-1 md:flex-none cursor-pointer text-sm">確認儲存</button></div>
+          </div>
         </div>
       )}
     </div>
