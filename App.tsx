@@ -35,6 +35,8 @@ import {
   ShieldAlert as ShieldAlertIcon
 } from 'lucide-react';
 import { format, getDay } from 'date-fns';
+import { auth } from './services/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const App: React.FC = () => {
   // --- States ---

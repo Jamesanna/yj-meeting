@@ -103,6 +103,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.190',
+      title: '登入功能徹底修復',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修復 Firebase Auth 引用遺漏導致的登入行為異常。',
+        '優化系統啟動載入順序，確保 Google 驗證服務 100% 可用。',
+        '增加更詳細的錯誤提示引導，協助使用者排除彈窗攔截問題。'
+      ]
+    },
+    {
       version: 'v2.189',
       title: '啟動登入偵錯模式',
       type: 'fix',
