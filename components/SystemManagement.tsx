@@ -107,6 +107,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.208',
+      title: '管理員密碼維護功能修正',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修復密碼欄位顯示：解決介面整合後，因標籤 ID 變更導致管理員密碼欄位消失的問題。',
+        '全面支援 L1/L2 密碼重設：現在無論是最高管理員 (L1) 或系統管理員 (L2)，在編輯模式下均可正確顯示並修改登入密碼。'
+      ]
+    },
+    {
       version: 'v2.207',
       title: '模組化開發：介面架構整合',
       type: 'feature',
@@ -1011,7 +1021,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                       <select value={department} onChange={(e) => setDepartment(e.target.value)} className={inputStyle + " custom-select"}><option value="">請選擇</option>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select>
                     </div>
                   )}
-                  {activeSubTab === 'admins' && <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">設定登入密碼</label><input type="password" value={resetPwd} onChange={(e) => setResetPwd(e.target.value)} className={inputStyle} /></div>}
+                  {userRole?.startsWith('admin') && <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">設定登入密碼</label><input type="password" value={resetPwd} onChange={(e) => setResetPwd(e.target.value)} className={inputStyle} /></div>}
                 </>
               )}
             </div>
