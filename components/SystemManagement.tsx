@@ -98,12 +98,22 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [isSaving, setIsSaving] = useState(false);
 
   const filteredUsers = useMemo(() => {
-    if (activeSubTab === 'staff_management') return users.filter(u => u.role === 'user');
+    if (activeSubTab === 'staff_management') return users; // 顯示所有白名單成員 (含管理員)
     if (activeSubTab === 'admins') return users.filter(u => u.role === 'admin');
     return [];
   }, [users, activeSubTab]);
 
   const changelogs = [
+    {
+      version: 'v2.197',
+      title: '權限視圖與維護優化',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '優化人員清單顯示邏輯：管理員帳號現在會同步出現在「員工管理」白名單中，避免設定權限後帳號「位移」感。',
+        '現在「員工管理」將作為完整的企業白名單總表，而「系統帳號」則專注於權限審核與密碼維護。'
+      ]
+    },
     {
       version: 'v2.196',
       title: '研發文件同步自動化',
