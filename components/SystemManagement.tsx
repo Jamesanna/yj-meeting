@@ -105,6 +105,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.198',
+      title: '登入驗證邏輯修復',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修復「管理權限帳號」無法通過前台 Google 登入白名單驗證之異常。',
+        '確保提升至管理權限之同仁，依然保有前台會議室預約之完整權利。'
+      ]
+    },
+    {
       version: 'v2.197',
       title: '權限視圖與維護優化',
       type: 'fix',
@@ -464,8 +474,8 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
       const oldName = departments[editingDeptIndex];
       const newDepts = [...departments];
       newDepts[editingDeptIndex] = trimmed;
-      await dbService.updateDepartments(newDepts);
-      const affectedUsers = users.filter(u => u.department === oldName);
+      const allUsers = await dbService.getUsers();
+      const affectedUsers = allUsers.filter(u => u.department === oldName);
       for (const u of affectedUsers) await dbService.updateUser(u.id, { department: trimmed });
       triggerToast(`更名成功。`);
     } else {

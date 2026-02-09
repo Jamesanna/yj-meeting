@@ -109,8 +109,7 @@ const App: React.FC = () => {
       }
 
       const allUsers = await dbService.getUsers();
-      const users = allUsers.filter(u => u.role === 'user');
-      const match = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
+      const match = allUsers.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
 
       if (match) {
         setGoogleUser(match);
