@@ -46,8 +46,8 @@ interface SystemManagementProps {
   onDataUpdate?: () => void;
 }
 
-type SubTab = 'announcements' | 'staff_management' | 'admins' | 'info';
-type StaffSubView = 'list' | 'departments';
+type SubTab = 'announcements' | 'staff_management' | 'info';
+type StaffSubView = 'list' | 'departments' | 'admins';
 type InfoView = 'overview' | 'manual' | 'changelog';
 
 const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onDataUpdate }) => {
@@ -98,12 +98,24 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [isSaving, setIsSaving] = useState(false);
 
   const filteredUsers = useMemo(() => {
-    if (activeSubTab === 'staff_management') return users; // 顯示所有白名單成員 (含管理員)
-    if (activeSubTab === 'admins') return users.filter(u => u.role === 'admin');
+    if (activeSubTab === 'staff_management') {
+      if (activeStaffSubView === 'admins') return users.filter(u => u.role?.startsWith('admin'));
+      return users;
+    }
     return [];
-  }, [users, activeSubTab]);
+  }, [users, activeSubTab, activeStaffSubView]);
 
   const changelogs = [
+    {
+      version: 'v2.207',
+      title: '模組化開發：介面架構整合',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '整合權限管理入口：將原先獨立的「系統帳號」標籤併入「員工管理」模組，透過子分頁籤切換，減少主導航層級，操作更流暢。',
+        '優化管理視圖：統一員工名單與管理員名單的維護入口，並針對不同視圖提供精確的過濾邏輯。'
+      ]
+    },
     {
       version: 'v2.206',
       title: '雙軌權限位階管理上線',
@@ -636,11 +648,10 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
       <div className="bg-slate-100 p-1.5 rounded-2xl flex flex-wrap gap-1.5">
         {[
           { id: 'announcements', label: '公告管理', icon: Megaphone },
-          { id: 'staff_management', label: '員工管理', icon: UserCheck },
-          { id: 'admins', label: '系統帳號', icon: ShieldCheck },
+          { id: 'staff_management', label: '員工管理', icon: Users },
           { id: 'info', label: '系統資訊', icon: Monitor },
         ].map(tab => (
-          <button key={tab.id} type="button" onClick={() => { setActiveSubTab(tab.id as SubTab); setActiveStaffSubView('list'); }} className={`flex-[1_0_calc(50%-6px)] md:flex-1 flex items-center justify-center space-x-2 px-3 py-3 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer ${activeSubTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><tab.icon className="w-4 h-4 pointer-events-none" /><span className="text-[12px] md:text-sm pointer-events-none">{tab.label}</span></button>
+          <button key={tab.id} type="button" onClick={() => { setActiveSubTab(tab.id as SubTab); setActiveStaffSubView('list'); }} className={`flex-1 flex items-center justify-center space-x-2 px-3 py-3 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer ${activeSubTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><tab.icon className="w-4 h-4 pointer-events-none" /><span className="text-[12px] md:text-sm pointer-events-none">{tab.label}</span></button>
         ))}
       </div>
 
@@ -815,17 +826,18 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
         ) : (
           <div className="flex-1 flex flex-col">
             {activeSubTab === 'staff_management' && (
-              <div className="flex border-b bg-slate-50/30 px-6 md:px-8 py-4 gap-4">
-                <button type="button" onClick={() => setActiveStaffSubView('list')} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-black text-sm transition-all cursor-pointer ${activeStaffSubView === 'list' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}><List className="w-4 h-4 pointer-events-none" /><span>員工名單</span></button>
-                <button type="button" onClick={() => setActiveStaffSubView('departments')} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-black text-sm transition-all cursor-pointer ${activeStaffSubView === 'departments' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid className="w-4 h-4 pointer-events-none" /><span>部門設定</span></button>
+              <div className="flex border-b bg-slate-50/30 px-6 md:px-8 py-4 gap-4 overflow-x-auto no-scrollbar">
+                <button type="button" onClick={() => setActiveStaffSubView('list')} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-black text-sm transition-all cursor-pointer shrink-0 ${activeStaffSubView === 'list' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}><List className="w-4 h-4 pointer-events-none" /><span>員工名單</span></button>
+                <button type="button" onClick={() => setActiveStaffSubView('departments')} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-black text-sm transition-all cursor-pointer shrink-0 ${activeStaffSubView === 'departments' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}><LayoutGrid className="w-4 h-4 pointer-events-none" /><span>部門設定</span></button>
+                <button type="button" onClick={() => setActiveStaffSubView('admins')} className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-black text-sm transition-all cursor-pointer shrink-0 ${activeStaffSubView === 'admins' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}><ShieldCheck className="w-4 h-4 pointer-events-none" /><span>系統帳號 (L1/L2)</span></button>
               </div>
             )}
 
             <div className="p-6 md:p-8 border-b flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
               <h3 className="text-xl font-black text-slate-800">
-                {activeSubTab === 'announcements' ? '內容公告維護' : activeSubTab === 'staff_management' ? (activeStaffSubView === 'list' ? '員工名單管理' : '部門架構設定') : '系統帳號管理'}
+                {activeSubTab === 'announcements' ? '內容公告維護' : activeSubTab === 'staff_management' ? (activeStaffSubView === 'list' ? '員工名單管理' : activeStaffSubView === 'departments' ? '部門架構設定' : '系統帳號權限管理') : '系統資訊'}
               </h3>
-              <button type="button" onClick={() => { resetForm(); activeStaffSubView === 'departments' && activeSubTab === 'staff_management' ? setShowDeptModal(true) : setShowModal(true); }} className="px-10 py-3 bg-blue-600 text-white font-black rounded-2xl shadow-lg active:scale-95 flex items-center justify-center space-x-2 w-full md:w-auto cursor-pointer"><Plus className="w-5 h-5 pointer-events-none" /><span>新增項目</span></button>
+              <button type="button" onClick={() => { resetForm(); activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? setShowDeptModal(true) : setShowModal(true); }} className="px-10 py-3 bg-blue-600 text-white font-black rounded-2xl shadow-lg active:scale-95 flex items-center justify-center space-x-2 w-full md:w-auto cursor-pointer"><Plus className="w-5 h-5 pointer-events-none" /><span>新增項目</span></button>
             </div>
 
             <div className="flex-1 flex flex-col">
@@ -834,17 +846,22 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 text-[11px] font-black text-slate-400 uppercase tracking-widest border-b">
                     <tr>
-                      {activeStaffSubView === 'departments' && activeSubTab === 'staff_management' ? (
+                      {activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? (
                         <>
                           <th className="px-10 py-5">部門名稱</th>
                           <th className="px-10 py-5">成員人數</th>
                         </>
+                      ) : activeSubTab === 'announcements' ? (
+                        <>
+                          <th className="px-10 py-5">公告內容</th>
+                          <th className="px-10 py-5">發佈狀態</th>
+                        </>
                       ) : (
                         <>
-                          <th className="px-10 py-5">{activeSubTab === 'announcements' ? '公告內容' : '名稱 / 姓名'}</th>
-                          {activeSubTab === 'staff_management' && <th className="px-10 py-5">部門</th>}
+                          <th className="px-10 py-5">姓名</th>
+                          <th className="px-10 py-5">部門</th>
                           <th className="px-10 py-5">帳號類型</th>
-                          <th className="px-10 py-5">{activeSubTab === 'announcements' ? '發佈狀態' : '帳號標識 (Email)'}</th>
+                          <th className="px-10 py-5">驗證 Email</th>
                         </>
                       )}
                       <th className="px-10 py-5 text-center">操作</th>
