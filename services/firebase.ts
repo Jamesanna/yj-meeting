@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDLeHbJU-n7VL6s2dUavvs4TSW_WlQwR1w",
+    apiKey: "AIzaSyDLeHbJU-n7VL6s2dUavvS4TSW_WlQwR1w",
     authDomain: "yj-meeting.firebaseapp.com",
     projectId: "yj-meeting",
     storageBucket: "yj-meeting.firebasestorage.app",

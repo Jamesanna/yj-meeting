@@ -103,6 +103,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.192',
+      title: '連線參數精確調校',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '完成 Firebase API Key 大小寫精確校準，修復 Auth 驗證失效問題。',
+        '確保生產環境連線配置與 Google Cloud 後台 100% 同步。'
+      ]
+    },
+    {
       version: 'v2.191',
       title: 'API 金鑰效度校準',
       type: 'fix',
