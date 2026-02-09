@@ -3,14 +3,14 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// 這裡之後需要填入您的 Firebase 設定資訊
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyDLeHbJU-n7VL6s2dUavvs4TSW_WlQwR1w",
+    authDomain: "yj-meeting.firebaseapp.com",
+    projectId: "yj-meeting",
+    storageBucket: "yj-meeting.firebasestorage.app",
+    messagingSenderId: "815452229762",
+    appId: "1:815452229762:web:bc002499e79994351e649b",
+    measurementId: "G-W7882SVERB"
 };
 
 const app = initializeApp(firebaseConfig);

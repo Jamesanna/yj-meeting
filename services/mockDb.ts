@@ -1,157 +1,172 @@
 
 import { Booking, Announcement, User, Device } from '../types';
+import { db } from './firebase';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  setDoc,
+  getDoc,
+  query,
+  where,
+  limit
+} from 'firebase/firestore';
 
-const STORAGE_KEYS = {
-  BOOKINGS: 'meeting_room_bookings',
-  ANNOUNCEMENTS: 'meeting_room_announcements',
-  USERS: 'meeting_room_users',
-  CONFIG: 'meeting_room_config',
-  DEVICES: 'meeting_room_devices',
-  SYSTEM_SETTINGS: 'meeting_room_system_settings',
-  DEPARTMENTS: 'meeting_room_departments'
+const COLLECTIONS = {
+  BOOKINGS: 'bookings',
+  ANNOUNCEMENTS: 'announcements',
+  USERS: 'users',
+  CONFIG: 'config',
+  DEVICES: 'devices',
+  SYSTEM_SETTINGS: 'system_settings',
+  DEPARTMENTS: 'departments'
 };
 
-const getFromStorage = <T,>(key: string, defaultValue: T): T => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : defaultValue;
-};
-
-const setToStorage = <T,>(key: string, data: T): void => {
-  localStorage.setItem(key, JSON.stringify(data));
+// 輔助函式：從 Firestore 獲取單一文件或預設值
+const getDocData = async <T,>(collectionName: string, id: string, defaultValue: T): Promise<T> => {
+  try {
+    const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() as T : defaultValue;
+  } catch (error) {
+    console.error(`Error getting doc ${id} from ${collectionName}:`, error);
+    return defaultValue;
+  }
 };
 
 export const dbService = {
-  // System Settings - 讀取環境變數
+  // System Settings
   getSystemSettings: async () => {
-    // 優先讀取環境變數，若無則使用原本的預設值
     const defaultSettings = {
-      allowedDomain: (process.env as any).ALLOWED_DOMAIN || 'yi-jun.com',
-      corpSsid: (process.env as any).CORP_SSID || '.YIJUN',
-      guestSsid: (process.env as any).GUEST_SSID || '.YJ_VIP',
-      guestPwd: (process.env as any).GUEST_PWD || '@1681688',
+      allowedDomain: 'yi-jun.com',
+      corpSsid: '.YIJUN',
+      guestSsid: '.YJ_VIP',
+      guestPwd: '@1681688',
       showQuickBookQr: true,
       showWifiInfo: true,
       requireGoogleLogin: true,
-      // 預留 Firebase 連線所需之 API KEY 環境變數
-      apiKey: process.env.API_KEY || ''
+      apiKey: ''
     };
-    
-    let settings = getFromStorage(STORAGE_KEYS.SYSTEM_SETTINGS, null);
-    if (!settings) {
-      settings = defaultSettings;
-      setToStorage(STORAGE_KEYS.SYSTEM_SETTINGS, settings);
-    } else {
-      // 確保即使已有快取，新的環境變數也能被考慮（視需求而定，目前保持儲存後的權限）
-      settings = { ...defaultSettings, ...settings };
-    }
-    return settings;
+
+    return await getDocData(COLLECTIONS.SYSTEM_SETTINGS, 'main', defaultSettings);
   },
-  
+
   updateSystemSettings: async (updates: any) => {
-    const current = await dbService.getSystemSettings();
-    setToStorage(STORAGE_KEYS.SYSTEM_SETTINGS, { ...current, ...updates });
+    const docRef = doc(db, COLLECTIONS.SYSTEM_SETTINGS, 'main');
+    await setDoc(docRef, updates, { merge: true });
   },
 
   // Departments
   getDepartments: async (): Promise<string[]> => {
-    let depts = getFromStorage<string[]>(STORAGE_KEYS.DEPARTMENTS, []);
-    if (depts.length === 0) {
-      depts = ["財務", "行政", "工程", "資訊", "專案"];
-      setToStorage(STORAGE_KEYS.DEPARTMENTS, depts);
-    }
-    return depts;
+    const data = await getDocData<{ list: string[] }>(COLLECTIONS.DEPARTMENTS, 'main', { list: ["財務", "行政", "工程", "資訊", "專案"] });
+    return data.list;
   },
   updateDepartments: async (newDepts: string[]) => {
-    setToStorage(STORAGE_KEYS.DEPARTMENTS, newDepts);
+    const docRef = doc(db, COLLECTIONS.DEPARTMENTS, 'main');
+    await setDoc(docRef, { list: newDepts });
   },
 
   // Config
-  getConfig: async () => getFromStorage(STORAGE_KEYS.CONFIG, {
-    allowedDomain: (process.env as any).ALLOWED_DOMAIN || 'yi-jun.com'
-  }),
+  getConfig: async () => {
+    return await getDocData(COLLECTIONS.CONFIG, 'main', { allowedDomain: 'yi-jun.com' });
+  },
   updateConfig: async (updates: any) => {
-    const current = await dbService.getConfig();
-    setToStorage(STORAGE_KEYS.CONFIG, { ...current, ...updates });
+    const docRef = doc(db, COLLECTIONS.CONFIG, 'main');
+    await setDoc(docRef, updates, { merge: true });
   },
 
   // Bookings
-  getBookings: async (): Promise<Booking[]> => getFromStorage(STORAGE_KEYS.BOOKINGS, []),
+  getBookings: async (): Promise<Booking[]> => {
+    const querySnapshot = await getDocs(collection(db, COLLECTIONS.BOOKINGS));
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Booking));
+  },
   saveBooking: async (booking: Booking) => {
-    const bookings = await dbService.getBookings();
-    bookings.push(booking);
-    setToStorage(STORAGE_KEYS.BOOKINGS, bookings);
+    const { id, ...data } = booking;
+    if (id && !id.startsWith('book_')) {
+      // 如果有指定 ID 且不是自動生成的格式，使用 setDoc
+      await setDoc(doc(db, COLLECTIONS.BOOKINGS, id), data);
+    } else {
+      // 否則自動生成
+      await addDoc(collection(db, COLLECTIONS.BOOKINGS), data);
+    }
   },
   deleteBooking: async (id: string) => {
-    const bookings = (await dbService.getBookings()).filter(b => b.id !== id);
-    setToStorage(STORAGE_KEYS.BOOKINGS, bookings);
+    await deleteDoc(doc(db, COLLECTIONS.BOOKINGS, id));
   },
 
   // Announcements
-  getAnnouncements: async (): Promise<Announcement[]> => getFromStorage(STORAGE_KEYS.ANNOUNCEMENTS, [
-    { id: '1', content: '歡迎使用羿鈞科技會議室預約系統！本系統採 Google Workspace 帳號認證預約。', isActive: true, createdAt: Date.now() }
-  ]),
+  getAnnouncements: async (): Promise<Announcement[]> => {
+    const querySnapshot = await getDocs(collection(db, COLLECTIONS.ANNOUNCEMENTS));
+    const anns = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Announcement));
+    if (anns.length === 0) {
+      return [{ id: '1', content: '歡迎使用羿鈞科技會議室預約系統！目前已啟動 Firebase 雲端同步。', isActive: true, createdAt: Date.now() }];
+    }
+    return anns;
+  },
   saveAnnouncement: async (ann: Announcement) => {
-    const anns = await dbService.getAnnouncements();
-    anns.push(ann);
-    setToStorage(STORAGE_KEYS.ANNOUNCEMENTS, anns);
+    const { id, ...data } = ann;
+    await addDoc(collection(db, COLLECTIONS.ANNOUNCEMENTS), data);
   },
   updateAnnouncement: async (id: string, updates: Partial<Announcement>) => {
-    const anns = (await dbService.getAnnouncements()).map(a => a.id === id ? { ...a, ...updates } : a);
-    setToStorage(STORAGE_KEYS.ANNOUNCEMENTS, anns);
+    const docRef = doc(db, COLLECTIONS.ANNOUNCEMENTS, id);
+    await updateDoc(docRef, updates);
   },
   deleteAnnouncement: async (id: string) => {
-    const anns = (await dbService.getAnnouncements()).filter(a => a.id !== id);
-    setToStorage(STORAGE_KEYS.ANNOUNCEMENTS, anns);
+    await deleteDoc(doc(db, COLLECTIONS.ANNOUNCEMENTS, id));
   },
 
   // Devices
-  getDevices: async (): Promise<Device[]> => getFromStorage(STORAGE_KEYS.DEVICES, [
-    { id: 'dev_1', name: '4K 無線投影機', status: 'available', note: '放置於會議桌下方' },
-    { id: 'dev_2', name: '高功率雷筆', status: 'available', note: '行政部領取' }
-  ]),
+  getDevices: async (): Promise<Device[]> => {
+    const querySnapshot = await getDocs(collection(db, COLLECTIONS.DEVICES));
+    const devices = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Device));
+    if (devices.length === 0) {
+      return [
+        { id: 'dev_1', name: '4K 無線投影機', status: 'available', note: '放置於會議桌下方' },
+        { id: 'dev_2', name: '高功率雷筆', status: 'available', note: '行政部領取' }
+      ];
+    }
+    return devices;
+  },
   saveDevice: async (device: Device) => {
-    const devices = await dbService.getDevices();
-    devices.push(device);
-    setToStorage(STORAGE_KEYS.DEVICES, devices);
+    const { id, ...data } = device;
+    await addDoc(collection(db, COLLECTIONS.DEVICES), data);
   },
   updateDevice: async (id: string, updates: Partial<Device>) => {
-    const devices = (await dbService.getDevices()).map(d => d.id === id ? { ...d, ...updates } : d);
-    setToStorage(STORAGE_KEYS.DEVICES, devices);
+    const docRef = doc(db, COLLECTIONS.DEVICES, id);
+    await updateDoc(docRef, updates);
   },
   deleteDevice: async (id: string) => {
-    const devices = (await dbService.getDevices()).filter(d => d.id !== id);
-    setToStorage(STORAGE_KEYS.DEVICES, devices);
+    await deleteDoc(doc(db, COLLECTIONS.DEVICES, id));
   },
 
   // Users
   getUsers: async (): Promise<User[]> => {
-    let users = getFromStorage<User[]>(STORAGE_KEYS.USERS, []);
+    const querySnapshot = await getDocs(collection(db, COLLECTIONS.USERS));
+    const users = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
     if (users.length === 0) {
-      users = [
-        { id: 'admin_sysop', email: 'sysop', name: '系統管理員', role: 'admin', password: 'Aa123456' },
-        { id: 'user_1', email: 'demo@yi-jun.com', name: '測試同仁', role: 'user', department: '工程' }
-      ];
-      setToStorage(STORAGE_KEYS.USERS, users);
+      // 初始化預設管理員
+      const defaultAdmin = { email: 'sysop', name: '系統管理員', role: 'admin' as const, password: 'Aa123456' };
+      const docRef = await addDoc(collection(db, COLLECTIONS.USERS), defaultAdmin);
+      return [{ ...defaultAdmin, id: docRef.id }];
     }
     return users;
   },
   addUser: async (user: User) => {
-    const users = await dbService.getUsers();
-    if (!users.find(u => u.id === user.id)) {
-      users.push(user);
-      setToStorage(STORAGE_KEYS.USERS, users);
-    }
+    const { id, ...data } = user;
+    await addDoc(collection(db, COLLECTIONS.USERS), data);
   },
   updateUser: async (id: string, updates: Partial<User>) => {
-    const users = (await dbService.getUsers()).map(u => u.id === id ? { ...u, ...updates } : u);
-    setToStorage(STORAGE_KEYS.USERS, users);
+    const docRef = doc(db, COLLECTIONS.USERS, id);
+    await updateDoc(docRef, updates);
   },
   deleteUser: async (id: string) => {
-    const users = (await dbService.getUsers()).filter(u => u.id !== id);
-    setToStorage(STORAGE_KEYS.USERS, users);
+    await deleteDoc(doc(db, COLLECTIONS.USERS, id));
   },
   changePassword: async (userId: string, newPassword: string) => {
-    const users = (await dbService.getUsers()).map(u => u.id === userId ? { ...u, password: newPassword } : u);
-    setToStorage(STORAGE_KEYS.USERS, users);
+    const docRef = doc(db, COLLECTIONS.USERS, userId);
+    await updateDoc(docRef, { password: newPassword });
   }
 };
