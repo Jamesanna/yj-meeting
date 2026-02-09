@@ -119,7 +119,20 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
     return [];
   }, [users, activeSubTab, activeStaffSubView, selectedDeptFilter]);
 
+  const isL1 = useMemo(() => currentUser.role === 'admin_l1' || currentUser.email === 'sysop', [currentUser]);
+
   const changelogs = [
+    {
+      version: 'v2.213',
+      title: '系統安全性與權限控管強化',
+      type: 'security',
+      date: '2026-02-09',
+      logs: [
+        '系統參數保護：強制「系統概覽」內的連線設定與權限參數僅限「最高管理員 (L1)」修改。',
+        '動態 UI 攔截：次管理員 (L2) 進入設定頁時，所有輸入框與按鈕將自動反灰禁用，並顯示權限不足提示。',
+        '後端二次驗證：存檔功能加入權限位階檢查，確保非法越權操作無效。'
+      ]
+    },
     {
       version: 'v2.212',
       title: '操作日誌資料視覺呈現再強化',
@@ -683,6 +696,10 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   };
 
   const handleUpdateSysSettings = async () => {
+    if (!isL1) {
+      alert('您的權限等級不足，無法修改系統核心設定。');
+      return;
+    }
     await dbService.updateSystemSettings({
       allowedDomain: tempAllowedDomain,
       corpSsid: tempCorpSsid,
@@ -780,41 +797,50 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                   <div className="w-full max-w-4xl mx-auto space-y-6">
                     <div className="bg-slate-50/50 rounded-[2.5rem] p-6 md:p-10 border-2 border-slate-100">
                       <div className="flex flex-col sm:flex-row justify-between items-center mb-10 pb-4 border-b border-slate-200 gap-4">
-                        <h4 className="text-lg font-black flex items-center"><Settings2 className="w-5 h-5 mr-3 text-blue-600" /> 連線參數與權限設定</h4>
-                        <button onClick={handleUpdateSysSettings} className="px-8 py-3 bg-blue-600 text-white text-sm font-black rounded-2xl active:scale-95 w-full sm:w-auto shadow-lg shadow-blue-200">儲存所有設定</button>
+                        <div className="flex flex-col">
+                          <h4 className="text-lg font-black flex items-center"><Settings2 className="w-5 h-5 mr-3 text-blue-600" /> 連線參數與權限設定</h4>
+                          {!isL1 && <p className="text-[10px] text-orange-500 font-black mt-1 bg-orange-50 px-2 py-0.5 rounded-lg">※ 您的帳號權限不足 (L2)，僅供檢視</p>}
+                        </div>
+                        <button
+                          disabled={!isL1}
+                          onClick={handleUpdateSysSettings}
+                          className={`px-8 py-3 text-sm font-black rounded-2xl transition-all shadow-lg w-full sm:w-auto ${isL1 ? 'bg-blue-600 text-white shadow-blue-200 active:scale-95 cursor-pointer' : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'}`}
+                        >
+                          儲存所有設定
+                        </button>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 ${!isL1 ? 'opacity-70 pointer-events-none grayscale-[0.3]' : ''}`}>
                         <div className="space-y-6">
                           <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 block flex items-center"><Globe className="w-3.5 h-3.5 mr-2" /> 允許認證網域 (Domain)</label>
-                            <input type="text" value={tempAllowedDomain} onChange={(e) => setTempAllowedDomain(e.target.value)} placeholder="yi-jun.com" className={inputStyle} />
+                            <input disabled={!isL1} type="text" value={tempAllowedDomain} onChange={(e) => setTempAllowedDomain(e.target.value)} placeholder="yi-jun.com" className={inputStyle + (isL1 ? "" : " cursor-not-allowed bg-slate-100")} />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 block flex items-center"><Database className="w-3.5 h-3.5 mr-2" /> 員工網路 SSID</label>
-                            <input type="text" value={tempCorpSsid} onChange={(e) => setTempCorpSsid(e.target.value)} placeholder=".YIJUN" className={inputStyle} />
+                            <input disabled={!isL1} type="text" value={tempCorpSsid} onChange={(e) => setTempCorpSsid(e.target.value)} placeholder=".YIJUN" className={inputStyle + (isL1 ? "" : " cursor-not-allowed bg-slate-100")} />
                           </div>
                         </div>
 
                         <div className="space-y-6">
                           <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 block flex items-center"><Wifi className="w-3.5 h-3.5 mr-2" /> 來賓網路 SSID</label>
-                            <input type="text" value={tempGuestSsid} onChange={(e) => setTempGuestSsid(e.target.value)} placeholder=".YJ_VIP" className={inputStyle} />
+                            <input disabled={!isL1} type="text" value={tempGuestSsid} onChange={(e) => setTempGuestSsid(e.target.value)} placeholder=".YJ_VIP" className={inputStyle + (isL1 ? "" : " cursor-not-allowed bg-slate-100")} />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 block flex items-center"><Lock className="w-3.5 h-3.5 mr-2" /> 來賓網路密碼</label>
-                            <input type="text" value={tempGuestPwd} onChange={(e) => setTempGuestPwd(e.target.value)} placeholder="@1681688" className={inputStyle} />
+                            <input disabled={!isL1} type="text" value={tempGuestPwd} onChange={(e) => setTempGuestPwd(e.target.value)} placeholder="@1681688" className={inputStyle + (isL1 ? "" : " cursor-not-allowed bg-slate-100")} />
                           </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between transition-all">
                           <div className="flex items-center space-x-3"><QrCode className="w-6 h-6 text-orange-500" /><div><p className="font-black text-sm text-slate-800">快速預約 QR 碼</p><p className="text-[10px] text-slate-400 font-bold">首頁顯示快速入口</p></div></div>
-                          <button type="button" onClick={() => setTempShowQuickBookQr(!tempShowQuickBookQr)} className="cursor-pointer">{tempShowQuickBookQr ? <ToggleRight className="w-12 h-12 text-blue-600" /> : <ToggleLeft className="w-12 h-12 text-slate-300" />}</button>
+                          <button disabled={!isL1} type="button" onClick={() => setTempShowQuickBookQr(!tempShowQuickBookQr)} className={`${isL1 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>{tempShowQuickBookQr ? <ToggleRight className="w-12 h-12 text-blue-600" /> : <ToggleLeft className="w-12 h-12 text-slate-300" />}</button>
                         </div>
 
-                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between transition-all">
                           <div className="flex items-center space-x-3"><Wifi className="w-6 h-6 text-blue-500" /><div><p className="font-black text-sm text-slate-800">WIFI 資訊窗</p><p className="text-[10px] text-slate-400 font-bold">顯示連線說明給來賓</p></div></div>
-                          <button type="button" onClick={() => setTempShowWifiInfo(!tempShowWifiInfo)} className="cursor-pointer">{tempShowWifiInfo ? <ToggleRight className="w-12 h-12 text-blue-600" /> : <ToggleLeft className="w-12 h-12 text-slate-300" />}</button>
+                          <button disabled={!isL1} type="button" onClick={() => setTempShowWifiInfo(!tempShowWifiInfo)} className={`${isL1 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>{tempShowWifiInfo ? <ToggleRight className="w-12 h-12 text-blue-600" /> : <ToggleLeft className="w-12 h-12 text-slate-300" />}</button>
                         </div>
                       </div>
                     </div>
