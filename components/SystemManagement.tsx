@@ -105,6 +105,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.200',
+      title: '月度預約總覽清單上線',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '前台與後台月曆下方新增「本月預約總覽」清單，改採跨日排序顯示，方便查看整月行程。',
+        '後台月度清單支援管理員直接「點選修改」與「一鍵刪除」功能，大幅提升維護效率。',
+        '優化清單日期標示，加入星期與月份縮寫，提升行動端閱讀體驗。'
+      ]
+    },
+    {
       version: 'v2.199',
       title: '管理員穿透式登入優化',
       type: 'feature',

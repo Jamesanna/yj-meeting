@@ -274,6 +274,13 @@ const App: React.FC = () => {
     handleGoogleLogout();
   };
 
+  const monthlyBookings = useMemo(() => {
+    const monthStr = format(selectedDate, 'yyyy-MM');
+    return bookings
+      .filter(b => b.date.startsWith(monthStr))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+  }, [bookings, selectedDate]);
+
   const dailyBookings = bookings
     .filter(b => b.date === format(selectedDate, 'yyyy-MM-dd'))
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -341,8 +348,8 @@ const App: React.FC = () => {
                 <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
                   <div className="p-6 md:p-8 bg-slate-50/50 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                      <h4 className="font-semibold text-slate-800 text-lg">{format(selectedDate, 'yyyy/MM/dd')}</h4>
-                      <p className="text-xs font-medium text-slate-400">預約詳情清單</p>
+                      <h4 className="font-semibold text-slate-800 text-lg">{format(selectedDate, 'yyyy年MM月')} 預約總覽清單</h4>
+                      <p className="text-xs font-medium text-slate-400">目前共 {monthlyBookings.length} 筆正式行程</p>
                     </div>
                     <button
                       type="button"
@@ -369,6 +376,7 @@ const App: React.FC = () => {
                     <table className="w-full text-left">
                       <thead className="bg-slate-50 text-[10px] font-semibold text-slate-400 uppercase tracking-widest border-b">
                         <tr>
+                          <th className="px-8 py-4 text-center">日期</th>
                           <th className="px-8 py-4">時段</th>
                           <th className="px-8 py-4">預約人</th>
                           <th className="px-8 py-4">用途</th>
@@ -376,34 +384,41 @@ const App: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y text-sm">
-                        {dailyBookings.length > 0 ? dailyBookings.map(b => (
-                          <tr key={b.id} className="hover:bg-slate-50 transition-colors">
+                        {monthlyBookings.length > 0 ? monthlyBookings.map(b => (
+                          <tr key={b.id} className={`transition-colors ${b.date === format(selectedDate, 'yyyy-MM-dd') ? 'bg-orange-50/50' : 'hover:bg-slate-50'}`}>
+                            <td className="px-8 py-4 text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase">{format(new Date(b.date), 'EEE')}</span>
+                                <span className="text-sm font-black text-slate-700">{format(new Date(b.date), 'dd')}</span>
+                              </div>
+                            </td>
                             <td className="px-8 py-4 font-bold text-blue-600 whitespace-nowrap">{b.startTime} - {b.endTime}</td>
                             <td className="px-8 py-4 font-bold text-slate-700 whitespace-nowrap">{b.userName}</td>
                             <td className="px-8 py-4 text-slate-500 font-medium truncate max-w-xs">{b.purpose}</td>
                             <td className="px-8 py-4">
                               <div className="flex justify-center items-center space-x-2">
-                                <button onClick={() => { setEditingBooking(b); setShowBookingModal(true); }} className="p-4 text-slate-400 hover:text-blue-600 active:scale-90 bg-slate-50 hover:bg-blue-50 rounded-xl transition-all"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
+                                <button onClick={() => { setSelectedDate(new Date(b.date)); setEditingBooking(b); setShowBookingModal(true); }} className="p-4 text-slate-400 hover:text-blue-600 active:scale-90 bg-slate-50 hover:bg-blue-50 rounded-xl transition-all"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
                                 <button onClick={() => setDeleteConfirmId(b.id)} className="p-4 text-slate-400 hover:text-red-600 active:scale-90 bg-slate-50 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4 pointer-events-none" /></button>
                               </div>
                             </td>
                           </tr>
                         )) : (
-                          <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-300 font-medium italic">本日無預約資料</td></tr>
+                          <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-300 font-medium italic">本月份尚無預約資料</td></tr>
                         )}
                       </tbody>
                     </table>
                   </div>
 
                   <div className="md:hidden divide-y">
-                    {dailyBookings.length > 0 ? dailyBookings.map(b => (
-                      <div key={b.id} className="p-5 space-y-3 bg-white">
+                    {monthlyBookings.length > 0 ? monthlyBookings.map(b => (
+                      <div key={b.id} className={`p-5 space-y-3 ${b.date === format(selectedDate, 'yyyy-MM-dd') ? 'bg-orange-50/30' : 'bg-white'}`}>
                         <div className="flex justify-between items-start">
-                          <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black">
-                            {b.startTime} - {b.endTime}
+                          <div className="flex items-center space-x-2">
+                            <div className="bg-slate-900 text-white px-2 py-1 rounded-md text-[10px] font-black">{format(new Date(b.date), 'MM/dd')}</div>
+                            <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black">{b.startTime} - {b.endTime}</div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <button onClick={() => { setEditingBooking(b); setShowBookingModal(true); }} className="p-5 text-slate-500 bg-slate-50 rounded-xl active:scale-90"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
+                            <button onClick={() => { setSelectedDate(new Date(b.date)); setEditingBooking(b); setShowBookingModal(true); }} className="p-5 text-slate-500 bg-slate-50 rounded-xl active:scale-90"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
                             <button onClick={() => setDeleteConfirmId(b.id)} className="p-5 text-red-400 bg-red-50 rounded-xl active:scale-90"><Trash2 className="w-4 h-4 pointer-events-none" /></button>
                           </div>
                         </div>
@@ -413,7 +428,7 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     )) : (
-                      <div className="p-10 text-center text-slate-300 font-medium italic">本日無預約資料</div>
+                      <div className="p-10 text-center text-slate-300 font-medium italic">本月份尚無預約資料</div>
                     )}
                   </div>
                 </div>
@@ -502,29 +517,37 @@ const App: React.FC = () => {
         <div className="px-4 md:px-6 space-y-6 md:space-y-8 pb-10 overflow-x-hidden">
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">
-              <h3 className="font-semibold text-slate-800 text-lg flex items-center"><span className="w-1.5 h-6 v2-badge rounded-full mr-3"></span>{format(selectedDate, 'MM月dd日')} 預約詳情</h3>
-              <span className="text-[10px] font-medium text-slate-300 tracking-widest uppercase">Total {dailyBookings.length}</span>
+              <h3 className="font-semibold text-slate-800 text-lg flex items-center"><span className="w-1.5 h-6 v2-badge rounded-full mr-3"></span>{format(selectedDate, 'yyyy年MM月')} 預約詳情</h3>
+              <span className="text-[10px] font-medium text-slate-300 tracking-widest uppercase">Monthly Total {monthlyBookings.length}</span>
             </div>
-            {dailyBookings.length > 0 ? (
+            {monthlyBookings.length > 0 ? (
               <div className="grid gap-3">
-                {dailyBookings.map((b) => (
-                  <div key={b.id} className="bg-white border border-slate-100 p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] flex items-center space-x-4 md:space-x-5 hover:border-orange-200 hover:bg-orange-50/10 transition-all group">
-                    <div className={`w-16 md:w-20 py-2.5 md:py-3 ${isSelectedDatePast ? 'bg-slate-100' : 'bg-orange-50'} rounded-2xl flex flex-col items-center group-hover:bg-orange-600 transition-colors shrink-0`}>
-                      <span className={`text-[9px] md:text-[10px] font-medium ${isSelectedDatePast ? 'text-slate-400' : 'text-orange-600'} group-hover:text-white`}>{b.startTime}</span>
-                      <div className="w-3 h-0.5 bg-current opacity-10 my-0.5"></div>
-                      <span className={`text-[9px] md:text-[10px] font-medium ${isSelectedDatePast ? 'text-slate-300' : 'text-orange-400'} group-hover:text-orange-100`}>{b.endTime}</span>
+                {monthlyBookings.map((b) => {
+                  const bDate = new Date(b.date);
+                  const isPast = b.date < format(new Date(), 'yyyy-MM-dd');
+                  return (
+                    <div key={b.id} className={`bg-white border p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] flex items-center space-x-4 md:space-x-5 hover:border-orange-200 hover:bg-orange-50/10 transition-all group ${b.date === format(selectedDate, 'yyyy-MM-dd') ? 'border-orange-400 ring-2 ring-orange-100' : 'border-slate-100'}`}>
+                      <div className="flex flex-col items-center justify-center bg-slate-900 text-white rounded-xl py-2 px-3 shrink-0">
+                        <span className="text-[9px] font-bold opacity-60 uppercase leading-none">{format(bDate, 'MM/dd')}</span>
+                        <span className="text-[10px] font-black mt-1 uppercase leading-none">{format(bDate, 'EEE')}</span>
+                      </div>
+                      <div className={`w-16 md:w-20 py-2.5 md:py-3 ${isPast ? 'bg-slate-100' : 'bg-orange-50'} rounded-2xl flex flex-col items-center group-hover:bg-orange-600 transition-colors shrink-0`}>
+                        <span className={`text-[9px] md:text-[10px] font-medium ${isPast ? 'text-slate-400' : 'text-orange-600'} group-hover:text-white`}>{b.startTime}</span>
+                        <div className="w-3 h-0.5 bg-current opacity-10 my-0.5"></div>
+                        <span className={`text-[9px] md:text-[10px] font-medium ${isPast ? 'text-slate-300' : 'text-orange-400'} group-hover:text-orange-100`}>{b.endTime}</span>
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <h4 className="font-semibold text-slate-800 text-sm md:text-base mb-0.5 truncate">{b.userName}</h4>
+                        <p className="text-xs text-slate-400 font-medium truncate">{b.purpose}</p>
+                      </div>
+                      <div className="pr-1 shrink-0"><div className={`w-2.5 h-2.5 rounded-full ${isPast ? 'bg-slate-200' : 'bg-green-500'}`}></div></div>
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                      <h4 className="font-semibold text-slate-800 text-sm md:text-base mb-0.5 truncate">{b.userName}</h4>
-                      <p className="text-xs text-slate-400 font-medium truncate">{b.purpose}</p>
-                    </div>
-                    <div className="pr-1 shrink-0"><div className={`w-2.5 h-2.5 rounded-full ${isSelectedDatePast ? 'bg-slate-200' : 'bg-green-500'}`}></div></div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="py-16 md:py-20 text-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
-                <Clock className="w-10 h-10 text-slate-200 mx-auto mb-4 pointer-events-none" /><p className="text-slate-300 font-medium italic">本日尚無預約資料</p>
+                <Clock className="w-10 h-10 text-slate-200 mx-auto mb-4 pointer-events-none" /><p className="text-slate-300 font-medium italic">本月份尚無預約資料</p>
               </div>
             )}
           </div>
