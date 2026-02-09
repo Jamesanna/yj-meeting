@@ -92,6 +92,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [annContent, setAnnContent] = useState('');
   const [annActive, setAnnActive] = useState(true);
   const [resetPwd, setResetPwd] = useState('');
+  const [userRole, setUserRole] = useState<'admin' | 'user'>('user');
   const [deptNameInput, setDeptNameInput] = useState('');
   const [error, setError] = useState('');
 
@@ -102,6 +103,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   }, [users, activeSubTab]);
 
   const changelogs = [
+    {
+      version: 'v2.193',
+      title: '基於角色的權限控管 (RBAC)',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '實現 Google 帳號與管理權限綁定，支援管理員透過 Email 指派後台權限。',
+        '後台加入「帳號類型」設定，可彈性切換「一般同仁」與「系統管理員」。',
+        '優化登入流程：管理員透過 Google 登入後將自動開啟管理介面存取權限。'
+      ]
+    },
     {
       version: 'v2.192',
       title: '連線參數精確調校',
@@ -366,7 +378,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const resetForm = () => {
     setName(''); setEmail(''); setDepartment(''); setAnnContent('');
     setAnnActive(true); setResetPwd(''); setError(''); setEditingItem(null);
-    setDeptNameInput(''); setEditingDeptIndex(null);
+    setDeptNameInput(''); setEditingDeptIndex(null); setUserRole('user');
   };
 
   const handleSaveAnnouncement = async () => {
@@ -378,8 +390,8 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const handleSaveUser = async () => {
     if (!name.trim()) { setError('請輸入姓名'); return; }
-    if (editingItem) await dbService.updateUser(editingItem.id, { name, email, department, password: resetPwd || undefined });
-    else await dbService.addUser({ id: `u_${Date.now()}`, email, name, department, role: activeSubTab === 'admins' ? 'admin' : 'user', password: resetPwd });
+    if (editingItem) await dbService.updateUser(editingItem.id, { name, email, department, role: userRole, password: resetPwd || undefined });
+    else await dbService.addUser({ id: `u_${Date.now()}`, email, name, department, role: userRole, password: resetPwd });
     await loadData(); setShowModal(false); resetForm(); triggerToast('資料已儲存');
   };
 
@@ -651,6 +663,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                         <>
                           <th className="px-10 py-5">{activeSubTab === 'announcements' ? '公告內容' : '名稱 / 姓名'}</th>
                           {activeSubTab === 'staff_management' && <th className="px-10 py-5">部門</th>}
+                          <th className="px-10 py-5">帳號類型</th>
                           <th className="px-10 py-5">{activeSubTab === 'announcements' ? '發佈狀態' : '帳號標識 (Email)'}</th>
                         </>
                       )}
@@ -695,10 +708,15 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                       <tr key={user.id} className="hover:bg-slate-50">
                         <td className="px-10 py-6">{user.name}</td>
                         {activeSubTab === 'staff_management' && <td className="px-10 py-6 text-slate-400">{user.department}</td>}
+                        <td className="px-10 py-6">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${user.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
+                            {user.role === 'admin' ? '系統管理員' : '一般同仁'}
+                          </span>
+                        </td>
                         <td className="px-10 py-6 text-slate-400">{user.email || '---'}</td>
                         <td className="px-10 py-6 text-center">
                           <div className="flex justify-center space-x-2">
-                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
                             <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.id === 'admin_sysop' ? 'invisible' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
                           </div>
                         </td>
@@ -784,6 +802,12 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                 <>
                   <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">姓名</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputStyle} /></div>
                   <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email (用於驗證)</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputStyle} /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">帳號權限</label>
+                    <select value={userRole} onChange={(e) => setUserRole(e.target.value as 'admin' | 'user')} className={inputStyle + " custom-select"}>
+                      <option value="user">一般同仁 (僅限預約)</option>
+                      <option value="admin">系統管理員 (全權限)</option>
+                    </select>
+                  </div>
                   {activeSubTab === 'staff_management' && (
                     <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">部門</label>
                       <select value={department} onChange={(e) => setDepartment(e.target.value)} className={inputStyle + " custom-select"}><option value="">請選擇</option>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select>

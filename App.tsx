@@ -114,7 +114,14 @@ const App: React.FC = () => {
 
       if (match) {
         setGoogleUser(match);
+        setCurrentUser(match); // 確保 currentUser 也同步更新
         localStorage.setItem('gw_session', JSON.stringify(match));
+
+        // --- 新增：如果角色是 admin，自動登入管理後台 ---
+        if (match.role === 'admin') {
+          setIsAdminLoggedIn(true);
+        }
+
         if (window.location.search.includes('mode=express')) {
           setTimeout(() => setShowBookingModal(true), 300);
         }
