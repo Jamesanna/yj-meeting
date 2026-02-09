@@ -103,6 +103,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.186',
+      title: '驗證系統最終調校',
+      type: 'docs',
+      date: '2026-02-09',
+      logs: [
+        '同步 Firebase Authentication 專案級別設定指引。',
+        '優化 Google OAuth 2.0 在 Github Pages 網域下之授權配置。'
+      ]
+    },
+    {
       version: 'v2.185',
       title: '編譯架構深度優化',
       type: 'fix',
