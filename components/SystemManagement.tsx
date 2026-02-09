@@ -103,6 +103,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.189',
+      title: '啟動登入偵錯模式',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '優化 Google Auth 報錯回饋，顯示具體錯誤碼以協助除錯。',
+        '加入彈窗攔截與授權網域異常之專屬引導提示。'
+      ]
+    },
+    {
       version: 'v2.188',
       title: 'Google 驗證正式上線',
       type: 'release',

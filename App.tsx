@@ -120,9 +120,19 @@ const App: React.FC = () => {
         setWhiteListError(`帳號 ${userEmail} 不在公司預約白名單內，請聯繫行政單位。`);
         await auth.signOut();
       }
-    } catch (error) {
-      console.error("Google Login Error:", error);
-      alert("登入過程發生錯誤，請稍後再試。");
+    } catch (error: any) {
+      console.error("Google Login Error Details:", error);
+      let errorMsg = "登入過程發生錯誤";
+
+      if (error.code === 'auth/unauthorized-domain') {
+        errorMsg = "【授權網域錯誤】請至 Firebase 後台新增 jamesanna.github.io 到 Authorized domains。";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMsg = "【彈窗被攔截】請允許此網頁開啟彈出式視窗。";
+      } else {
+        errorMsg += `：${error.message || '未知原因'}`;
+      }
+
+      alert(errorMsg);
     }
   };
 
