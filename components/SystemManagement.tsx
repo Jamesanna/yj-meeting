@@ -103,6 +103,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.183',
+      title: '確立開發自動化準則',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '確立「動代碼即加版次」與「同步更新改版紀錄」之作業準則。',
+        '提供 IDE 信任網域設定指引，優化快速預覽流程體驗。'
+      ]
+    },
+    {
       version: 'v2.181',
       title: '編譯效能優化 (Code Splitting)',
       type: 'fix',
