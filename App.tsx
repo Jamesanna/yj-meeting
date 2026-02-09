@@ -572,7 +572,13 @@ const App: React.FC = () => {
               <h2 className="text-xl font-bold text-slate-800 tracking-tight">管理員登入</h2>
               <p className="text-[10px] text-slate-400 mt-1 font-medium tracking-widest uppercase">Meeting Hub Admin</p>
             </div>
-            <div className="space-y-3.5">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAdminLogin();
+              }}
+              className="space-y-3.5"
+            >
               {loginError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-medium border border-red-100 flex items-center animate-shake"><ShieldAlert className="w-4 h-4 mr-2 pointer-events-none" />{loginError}</div>}
               <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Account</label><input type="text" className="w-full px-5 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-slate-800 transition-all font-bold text-black text-sm" placeholder="請輸入帳號" value={loginAccount} onChange={(e) => setLoginAccount(e.target.value)} /></div>
               <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Password</label><div className="relative"><input type={showLoginPassword ? "text" : "password"} className="w-full px-5 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-slate-800 transition-all font-bold text-black pr-12 text-sm" placeholder="請輸入密碼" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} /><button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-800 transition-colors">{showLoginPassword ? <EyeOff className="w-5 h-5 pointer-events-none" /> : <Eye className="w-5 h-5 pointer-events-none" />}</button></div></div>
@@ -589,8 +595,8 @@ const App: React.FC = () => {
                 <span onClick={() => setRememberAdmin(!rememberAdmin)} className="text-xs font-bold text-slate-500 cursor-pointer select-none group-hover:text-slate-800 transition-colors">記住此帳號</span>
               </div>
 
-              <button type="button" onClick={() => handleAdminLogin()} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95 mt-3 text-sm tracking-widest uppercase">進入管理介面</button>
-            </div>
+              <button type="submit" className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95 mt-3 text-sm tracking-widest uppercase">進入管理介面</button>
+            </form>
           </div>
         </div>
       )}

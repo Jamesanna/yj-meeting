@@ -104,6 +104,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.194',
+      title: '登入介面交互體驗優化',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '管理員登入視窗支援鍵盤「Enter」鍵觸發，提升操作效率。',
+        '優化表單提交邏輯，確保與瀏覽器原生行為一致。'
+      ]
+    },
+    {
       version: 'v2.193',
       title: '基於角色的權限控管 (RBAC)',
       type: 'feature',
