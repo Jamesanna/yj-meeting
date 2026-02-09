@@ -105,6 +105,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.202',
+      title: '公告管理邏輯與狀態修復',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修復公告編輯功能失效：補全公告儲存時的狀態管理，解決編輯既有公告後無法正確存入資料庫之異常。',
+        '優化儲存視覺反饋：公告與人員管理現在統一具備「處理中」與「錯誤提示」機制，防止重複點擊與靜默失敗。'
+      ]
+    },
+    {
       version: 'v2.201',
       title: '語系在地化與權限位階強化',
       type: 'feature',
@@ -468,9 +478,32 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const handleSaveAnnouncement = async () => {
     if (!annContent.trim()) { setError('請輸入內容'); return; }
-    if (editingItem) await dbService.updateAnnouncement(editingItem.id, { content: annContent, isActive: annActive });
-    else await dbService.saveAnnouncement({ id: `ann_${Date.now()}`, content: annContent, isActive: annActive, createdAt: Date.now() });
-    await loadData(); setShowModal(false); resetForm(); triggerToast('公告已更新');
+    setIsSaving(true);
+    setError('');
+    try {
+      if (editingItem) {
+        await dbService.updateAnnouncement(editingItem.id, {
+          content: annContent,
+          isActive: annActive
+        });
+      } else {
+        await dbService.saveAnnouncement({
+          id: `ann_${Date.now()}`,
+          content: annContent,
+          isActive: annActive,
+          createdAt: Date.now()
+        });
+      }
+      await loadData();
+      setShowModal(false);
+      resetForm();
+      triggerToast(editingItem ? '公告已更新' : '公告已發佈');
+    } catch (e: any) {
+      console.error(e);
+      setError(`公告儲存失敗: ${e.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveUser = async () => {
