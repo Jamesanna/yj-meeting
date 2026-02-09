@@ -103,6 +103,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.188',
+      title: 'Google 驗證正式上線',
+      type: 'release',
+      date: '2026-02-09',
+      logs: [
+        'Firebase Authentication Google Provider 正式啟用成功。',
+        '完成生產環境授權網域 (Authorized Domains) 配置指引。',
+        '系統進入「實名登入 + 白名單核對」安全運作模式。'
+      ]
+    },
+    {
       version: 'v2.187',
       title: '驗證安全性邏輯確認',
       type: 'security',
