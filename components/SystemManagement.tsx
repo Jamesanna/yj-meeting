@@ -96,16 +96,32 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [deptNameInput, setDeptNameInput] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState('全部');
 
   const filteredUsers = useMemo(() => {
     if (activeSubTab === 'staff_management') {
-      if (activeStaffSubView === 'admins') return users.filter(u => u.role?.startsWith('admin'));
-      return users;
+      let result = users;
+      if (activeStaffSubView === 'admins') {
+        result = users.filter(u => u.role?.startsWith('admin'));
+      } else if (activeStaffSubView === 'list' && selectedDeptFilter !== '全部') {
+        result = users.filter(u => u.department === selectedDeptFilter);
+      }
+      return result;
     }
     return [];
-  }, [users, activeSubTab, activeStaffSubView]);
+  }, [users, activeSubTab, activeStaffSubView, selectedDeptFilter]);
 
   const changelogs = [
+    {
+      version: 'v2.209',
+      title: '員工管理效率強化：部門快速篩選',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '新增部門過濾功能：在員工名單標題旁加入部門下拉選單，支援「全部」及個別部門快速篩選，大幅提升大型組織的人員查找效率。',
+        '優化篩選邏輯：整合資料過濾機制，確保篩選狀態與名單內容即時同步。'
+      ]
+    },
     {
       version: 'v2.208',
       title: '管理員密碼維護功能修正',
@@ -844,9 +860,24 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
             )}
 
             <div className="p-6 md:p-8 border-b flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
-              <h3 className="text-xl font-black text-slate-800">
-                {activeSubTab === 'announcements' ? '內容公告維護' : activeSubTab === 'staff_management' ? (activeStaffSubView === 'list' ? '員工名單管理' : activeStaffSubView === 'departments' ? '部門架構設定' : '系統帳號權限管理') : '系統資訊'}
-              </h3>
+              <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <h3 className="text-xl font-black text-slate-800 whitespace-nowrap">
+                  {activeSubTab === 'announcements' ? '內容公告維護' : activeSubTab === 'staff_management' ? (activeStaffSubView === 'list' ? '員工名單管理' : activeStaffSubView === 'departments' ? '部門架構設定' : '系統帳號權限管理') : '系統資訊'}
+                </h3>
+                {activeSubTab === 'staff_management' && activeStaffSubView === 'list' && (
+                  <div className="flex items-center bg-white border-2 border-slate-100 rounded-xl px-3 py-1.5 shadow-sm w-full md:w-auto">
+                    <Building2 className="w-4 h-4 text-slate-400 mr-2" />
+                    <select
+                      value={selectedDeptFilter}
+                      onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                      className="text-sm font-bold text-slate-600 outline-none bg-transparent cursor-pointer min-w-[100px]"
+                    >
+                      <option value="全部">全部部門</option>
+                      {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
               <button type="button" onClick={() => { resetForm(); activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? setShowDeptModal(true) : setShowModal(true); }} className="px-10 py-3 bg-blue-600 text-white font-black rounded-2xl shadow-lg active:scale-95 flex items-center justify-center space-x-2 w-full md:w-auto cursor-pointer"><Plus className="w-5 h-5 pointer-events-none" /><span>新增項目</span></button>
             </div>
 
