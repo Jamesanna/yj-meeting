@@ -1,5 +1,5 @@
 
-import { Booking, Announcement, User, Device } from '../types';
+import { Booking, Announcement, User, Device, OperationLog } from '../types';
 import { db } from './firebase';
 import {
   collection,
@@ -22,7 +22,8 @@ const COLLECTIONS = {
   CONFIG: 'config',
   DEVICES: 'devices',
   SYSTEM_SETTINGS: 'system_settings',
-  DEPARTMENTS: 'departments'
+  DEPARTMENTS: 'departments',
+  LOGS: 'operation_logs'
 };
 
 // 輔助函式：從 Firestore 獲取單一文件或預設值
@@ -168,5 +169,15 @@ export const dbService = {
   changePassword: async (userId: string, newPassword: string) => {
     const docRef = doc(db, COLLECTIONS.USERS, userId);
     await updateDoc(docRef, { password: newPassword });
+  },
+
+  // Operation Logs
+  addLog: async (logData: Omit<OperationLog, 'id'>) => {
+    await addDoc(collection(db, COLLECTIONS.LOGS), logData);
+  },
+  getLogs: async (limitCount: number = 2000): Promise<OperationLog[]> => {
+    const q = query(collection(db, COLLECTIONS.LOGS), limit(limitCount));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as OperationLog));
   }
 };

@@ -40,3 +40,13 @@ export interface SystemConfig {
   officeHoursEnd: string;
   slotInterval: number; // minutes
 }
+
+export interface OperationLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: 'login' | 'logout' | 'create' | 'update' | 'delete';
+  module: string; // e.g., '員工管理', '公告管理', '預約系統'
+  details: string; // 具體描述
+  createdAt: number;
+}

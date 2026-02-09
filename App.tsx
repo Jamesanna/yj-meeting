@@ -123,6 +123,16 @@ const App: React.FC = () => {
           setIsAdminLoggedIn(true);
         }
 
+        // 寫入 Google 登入日誌
+        dbService.addLog({
+          userId: match.id,
+          userName: match.name,
+          action: 'login',
+          module: '系統登入',
+          details: `${match.role?.startsWith('admin') ? '管理員' : '一般同仁'} ${match.name} 經由 Google 驗證登入`,
+          createdAt: Date.now()
+        });
+
         if (window.location.search.includes('mode=express')) {
           setTimeout(() => setShowBookingModal(true), 300);
         }
@@ -147,6 +157,16 @@ const App: React.FC = () => {
   };
 
   const handleGoogleLogout = () => {
+    if (currentUser) {
+      dbService.addLog({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'logout',
+        module: '系統登入',
+        details: `${currentUser.role?.startsWith('admin') ? '管理員' : '一般同仁'} ${currentUser.name} 登出系統`,
+        createdAt: Date.now()
+      });
+    }
     localStorage.removeItem('gw_session');
     localStorage.removeItem('persisted_admin_session');
     setGoogleUser(null);
@@ -223,6 +243,16 @@ const App: React.FC = () => {
       setLoginPassword('');
       if (rememberAdmin) localStorage.setItem('persisted_admin_session', JSON.stringify(match));
       else localStorage.removeItem('persisted_admin_session');
+
+      // 寫入登入日誌
+      dbService.addLog({
+        userId: match.id,
+        userName: match.name,
+        action: 'login',
+        module: '系統登入',
+        details: `管理員 ${match.name} (${match.email}) 登入後台`,
+        createdAt: Date.now()
+      });
     } else {
       setLoginError('管理帳號或密碼錯誤');
     }

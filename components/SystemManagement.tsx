@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { dbService } from '../services/mockDb';
-import { User, Announcement, UserRole } from '../types';
+import { User, Announcement, UserRole, OperationLog } from '../types';
 import { VERSION, SYSTEM_TITLE } from '../constants';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import {
   Plus,
   Trash2,
@@ -38,7 +39,10 @@ import {
   Database,
   Lock,
   Copy,
-  Link2
+  Link2,
+  ClipboardList,
+  Search,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 
 interface SystemManagementProps {
@@ -46,7 +50,7 @@ interface SystemManagementProps {
   onDataUpdate?: () => void;
 }
 
-type SubTab = 'announcements' | 'staff_management' | 'info';
+type SubTab = 'announcements' | 'staff_management' | 'logs' | 'info';
 type StaffSubView = 'list' | 'departments' | 'admins';
 type InfoView = 'overview' | 'manual' | 'changelog';
 
@@ -97,6 +101,10 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState('全部');
+  const [operationLogs, setOperationLogs] = useState<OperationLog[]>([]);
+  const [logLimit, setLogLimit] = useState(10);
+  const [logDateFilter, setLogDateFilter] = useState('');
+  const [logMonthFilter, setLogMonthFilter] = useState(format(new Date(), 'yyyy-MM'));
 
   const filteredUsers = useMemo(() => {
     if (activeSubTab === 'staff_management') {
@@ -112,6 +120,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   }, [users, activeSubTab, activeStaffSubView, selectedDeptFilter]);
 
   const changelogs = [
+    {
+      version: 'v2.210',
+      title: '系統稽核機制強化：操作日誌上線',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '新增「操作日誌」模組：完整紀錄前台登入與後台所有新增、編輯、刪除行為。',
+        '多功能篩選器：支援按月份、單一日期查詢，並提供 10 ~ 200 則的靈活分頁顯示。',
+        '自動化日誌追蹤：全面整合至人員管理、公告維護與部門設定模組。'
+      ]
+    },
     {
       version: 'v2.209',
       title: '員工管理效率強化：部門快速篩選',
@@ -489,26 +508,30 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   ];
 
   const loadData = async () => {
-    const [uArr, aArr, dArr, settings] = await Promise.all([
-      dbService.getUsers(),
-      dbService.getAnnouncements(),
-      dbService.getDepartments(),
-      dbService.getSystemSettings()
-    ]);
-    setUsers(uArr);
-    setAnnouncements(aArr);
-    setDepartments(dArr);
-    setSysSettings(settings);
+    try {
+      const [uArr, aArr, dArr, lArr, settings] = await Promise.all([
+        dbService.getUsers(),
+        dbService.getAnnouncements(),
+        dbService.getDepartments(),
+        dbService.getLogs(),
+        dbService.getSystemSettings()
+      ]);
+      setUsers(uArr);
+      setAnnouncements(aArr.sort((x, y) => y.createdAt - x.createdAt));
+      setDepartments(dArr);
+      setOperationLogs(lArr.sort((x, y) => y.createdAt - x.createdAt));
+      setSysSettings(settings);
 
-    // 初始化編輯值
-    setTempAllowedDomain(settings.allowedDomain);
-    setTempCorpSsid(settings.corpSsid);
-    setTempGuestSsid(settings.guestSsid);
-    setTempGuestPwd(settings.guestPwd);
-    setTempShowQuickBookQr(settings.showQuickBookQr);
-    setTempShowWifiInfo(settings.showWifiInfo);
+      // 初始化編輯值
+      setTempAllowedDomain(settings.allowedDomain);
+      setTempCorpSsid(settings.corpSsid);
+      setTempGuestSsid(settings.guestSsid);
+      setTempGuestPwd(settings.guestPwd);
+      setTempShowQuickBookQr(settings.showQuickBookQr);
+      setTempShowWifiInfo(settings.showWifiInfo);
 
-    if (onDataUpdate) onDataUpdate();
+      if (onDataUpdate) onDataUpdate();
+    } catch (e) { console.error(e); }
   };
 
   useEffect(() => { loadData(); }, [activeSubTab, activeStaffSubView]);
@@ -529,10 +552,13 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
     const { id, type, index } = itemToDelete;
     try {
       if (type === 'user') {
+        const target = users.find(u => u.id === id);
         if (id === 'admin_sysop') { alert('最高帳號不可刪除'); return; }
         await dbService.deleteUser(id);
+        await dbService.addLog({ userId: currentUser.id, userName: currentUser.name, action: 'delete', module: '員工管理', details: `刪除人員: ${target?.name || id}`, createdAt: Date.now() });
       } else if (type === 'ann') {
         await dbService.deleteAnnouncement(id);
+        await dbService.addLog({ userId: currentUser.id, userName: currentUser.name, action: 'delete', module: '公告管理', details: `刪除公告 ID: ${id}`, createdAt: Date.now() });
       } else if (type === 'dept' && typeof index === 'number') {
         const deptName = departments[index];
         if (users.some(u => u.department === deptName)) {
@@ -542,6 +568,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
         }
         const newDepts = departments.filter((_, i) => i !== index);
         await dbService.updateDepartments(newDepts);
+        await dbService.addLog({ userId: currentUser.id, userName: currentUser.name, action: 'delete', module: '部門設定', details: `刪除部門: ${deptName}`, createdAt: Date.now() });
       }
       await loadData();
       triggerToast('資料已成功刪除');
@@ -564,6 +591,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
           content: annContent,
           isActive: annActive
         });
+        await dbService.addLog({ userId: currentUser.id, userName: currentUser.name, action: 'update', module: '公告管理', details: `編輯公告: ${annContent.substring(0, 15)}...`, createdAt: Date.now() });
       } else {
         await dbService.saveAnnouncement({
           id: `ann_${Date.now()}`,
@@ -571,6 +599,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
           isActive: annActive,
           createdAt: Date.now()
         });
+        await dbService.addLog({ userId: currentUser.id, userName: currentUser.name, action: 'create', module: '公告管理', details: `發佈新公告: ${annContent.substring(0, 15)}...`, createdAt: Date.now() });
       }
       await loadData();
       setShowModal(false);
@@ -593,9 +622,11 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
       if (editingItem) {
         await dbService.updateUser(editingItem.id, userPayload);
+        await dbService.addLog({ userId: currentUser.id, userName: currentUser.name, action: 'update', module: activeStaffSubView === 'admins' ? '系統帳號' : '員工管理', details: `編輯人員: ${name} (${email})`, createdAt: Date.now() });
       } else {
         const id = `u_${Date.now()}`;
         await dbService.addUser({ id, ...userPayload });
+        await dbService.addLog({ userId: currentUser.id, userName: currentUser.name, action: 'create', module: activeStaffSubView === 'admins' ? '系統帳號' : '員工管理', details: `新增人員: ${name} (${email})`, createdAt: Date.now() });
       }
 
       await loadData();
@@ -675,9 +706,10 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
         {[
           { id: 'announcements', label: '公告管理', icon: Megaphone },
           { id: 'staff_management', label: '員工管理', icon: Users },
+          { id: 'logs', label: '操作日誌', icon: ClipboardList },
           { id: 'info', label: '系統資訊', icon: Monitor },
         ].map(tab => (
-          <button key={tab.id} type="button" onClick={() => { setActiveSubTab(tab.id as SubTab); setActiveStaffSubView('list'); }} className={`flex-1 flex items-center justify-center space-x-2 px-3 py-3 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer ${activeSubTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><tab.icon className="w-4 h-4 pointer-events-none" /><span className="text-[12px] md:text-sm pointer-events-none">{tab.label}</span></button>
+          <button key={tab.id} type="button" onClick={() => { setActiveSubTab(tab.id as SubTab); setActiveStaffSubView('list'); }} className={`flex-1 flex items-center justify-center space-x-1.5 px-2 py-3 rounded-xl font-bold transition-all whitespace-nowrap cursor-pointer ${activeSubTab === tab.id ? 'bg-white text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}><tab.icon className="w-3.5 h-3.5 pointer-events-none" /><span className="text-[11px] md:text-sm pointer-events-none">{tab.label}</span></button>
         ))}
       </div>
 
@@ -897,6 +929,14 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                           <th className="px-10 py-5">公告內容</th>
                           <th className="px-10 py-5">發佈狀態</th>
                         </>
+                      ) : activeSubTab === 'logs' ? (
+                        <>
+                          <th className="px-10 py-5">時間</th>
+                          <th className="px-10 py-5">操作人員</th>
+                          <th className="px-10 py-5">功能模組</th>
+                          <th className="px-10 py-5">操作類型</th>
+                          <th className="px-10 py-5">執行詳情</th>
+                        </>
                       ) : (
                         <>
                           <th className="px-10 py-5">姓名</th>
@@ -905,61 +945,84 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                           <th className="px-10 py-5">驗證 Email</th>
                         </>
                       )}
-                      <th className="px-10 py-5 text-center">操作</th>
+                      {activeSubTab !== 'logs' && <th className="px-10 py-5 text-center">操作</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y text-base font-bold text-slate-700">
-                    {activeSubTab === 'announcements' ? announcements.map(ann => (
-                      <tr key={ann.id} className="hover:bg-slate-50">
-                        <td className="px-10 py-6">{ann.content}</td>
-                        <td className="px-10 py-6">
-                          <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-black whitespace-nowrap ${ann.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
-                            {ann.isActive ? '顯示中' : '已停用'}
-                          </span>
-                        </td>
-                        <td className="px-10 py-6 text-center">
-                          <div className="flex justify-center space-x-2">
-                            <button type="button" onClick={() => { setEditingItem(ann); setAnnContent(ann.content); setAnnActive(ann.isActive); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                            <button type="button" onClick={() => askDelete(ann.id, 'ann')} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    )) : activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? departments.map((dept, idx) => (
-                      <tr key={dept} className="hover:bg-slate-50">
-                        <td className="px-10 py-6">
-                          <div className="flex items-center space-x-3">
-                            <Building2 className="w-5 h-5 text-blue-500" />
-                            <span>{dept}</span>
-                          </div>
-                        </td>
-                        <td className="px-10 py-6 text-slate-400">
-                          {users.filter(u => u.department === dept).length} 位成員
-                        </td>
-                        <td className="px-10 py-6 text-center">
-                          <div className="flex justify-center space-x-2">
-                            <button type="button" onClick={() => { setEditingDeptIndex(idx); setDeptNameInput(dept); setShowDeptModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                            <button type="button" onClick={() => askDelete(dept, 'dept', idx)} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    )) : filteredUsers.map(user => (
-                      <tr key={user.id} className="hover:bg-slate-50">
-                        <td className="px-10 py-6">{user.name}</td>
-                        {activeSubTab === 'staff_management' && <td className="px-10 py-6 text-slate-400">{user.department}</td>}
-                        <td className="px-10 py-6">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black ${user.role === 'admin_l1' || user.email === 'sysop' ? 'bg-orange-600 text-white' : user.role === 'admin_l2' ? 'bg-purple-100 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
-                            {user.role === 'admin_l1' || user.email === 'sysop' ? '最高管理員 (L1)' : user.role === 'admin_l2' ? '系統管理員 (L2)' : '一般同仁'}
-                          </span>
-                        </td>
-                        <td className="px-10 py-6 text-slate-400">{user.email || '---'}</td>
-                        <td className="px-10 py-6 text-center">
-                          <div className="flex justify-center space-x-2">
-                            <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer ${(user.role === 'admin_l1' || user.email === 'sysop') && (currentUser.role !== 'admin_l1' && currentUser.email !== 'sysop') ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-5 h-5 pointer-events-none" /></button>
-                            <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.role === 'admin_l1' || user.email === 'sysop' ? 'invisible pointer-events-none' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {activeSubTab === 'logs' ? operationLogs
+                      .filter(log => {
+                        const logDate = format(log.createdAt, 'yyyy-MM-dd');
+                        if (logDateFilter) return logDate === logDateFilter;
+                        if (logMonthFilter) return logDate.startsWith(logMonthFilter);
+                        return true;
+                      })
+                      .slice(0, logLimit)
+                      .map(log => (
+                        <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-10 py-5 text-xs text-slate-400">{format(log.createdAt, 'MM/dd HH:mm:ss')}</td>
+                          <td className="px-10 py-5 text-sm">{log.userName}</td>
+                          <td className="px-10 py-5"><span className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] uppercase">{log.module}</span></td>
+                          <td className="px-10 py-5">
+                            <span className={`px-3 py-1 rounded-full text-[10px] ${log.action === 'login' ? 'bg-emerald-50 text-emerald-600' :
+                              log.action === 'delete' ? 'bg-red-50 text-red-600' :
+                                log.action === 'create' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+                              }`}>
+                              {log.action === 'login' ? '登入系統' : log.action === 'create' ? '新增資料' : log.action === 'update' ? '編輯更新' : log.action === 'delete' ? '刪除資料' : '登出系統'}
+                            </span>
+                          </td>
+                          <td className="px-10 py-5 text-sm font-medium text-slate-500 max-w-xs truncate" title={log.details}>{log.details}</td>
+                        </tr>
+                      )) : activeSubTab === 'announcements' ? announcements.map(ann => (
+                        <tr key={ann.id} className="hover:bg-slate-50">
+                          <td className="px-10 py-6">{ann.content}</td>
+                          <td className="px-10 py-6">
+                            <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-black whitespace-nowrap ${ann.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+                              {ann.isActive ? '顯示中' : '已停用'}
+                            </span>
+                          </td>
+                          <td className="px-10 py-6 text-center">
+                            <div className="flex justify-center space-x-2">
+                              <button type="button" onClick={() => { setEditingItem(ann); setAnnContent(ann.content); setAnnActive(ann.isActive); setShowModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                              <button type="button" onClick={() => askDelete(ann.id, 'ann')} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      )) : activeSubTab === 'staff_management' && activeStaffSubView === 'departments' ? departments.map((dept, idx) => (
+                        <tr key={dept} className="hover:bg-slate-50">
+                          <td className="px-10 py-6">
+                            <div className="flex items-center space-x-3">
+                              <Building2 className="w-5 h-5 text-blue-500" />
+                              <span>{dept}</span>
+                            </div>
+                          </td>
+                          <td className="px-10 py-6 text-slate-400">
+                            {users.filter(u => u.department === dept).length} 位成員
+                          </td>
+                          <td className="px-10 py-6 text-center">
+                            <div className="flex justify-center space-x-2">
+                              <button type="button" onClick={() => { setEditingDeptIndex(idx); setDeptNameInput(dept); setShowDeptModal(true); }} className="p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer"><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                              <button type="button" onClick={() => askDelete(dept, 'dept', idx)} className="p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer"><Trash2 className="w-5 h-5 pointer-events-none" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      )) : filteredUsers.map(user => (
+                        <tr key={user.id} className="hover:bg-slate-50">
+                          <td className="px-10 py-6">{user.name}</td>
+                          {activeSubTab === 'staff_management' && <td className="px-10 py-6 text-slate-400">{user.department}</td>}
+                          <td className="px-10 py-6">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black ${user.role === 'admin_l1' || user.email === 'sysop' ? 'bg-orange-600 text-white' : user.role === 'admin_l2' ? 'bg-purple-100 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
+                              {user.role === 'admin_l1' || user.email === 'sysop' ? '最高管理員 (L1)' : user.role === 'admin_l2' ? '系統管理員 (L2)' : '一般同仁'}
+                            </span>
+                          </td>
+                          <td className="px-10 py-6 text-slate-400">{user.email || '---'}</td>
+                          <td className="px-10 py-6 text-center">
+                            <div className="flex justify-center space-x-2">
+                              <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className={`p-4 bg-slate-50 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl cursor-pointer ${(user.role === 'admin_l1' || user.email === 'sysop') && (currentUser.role !== 'admin_l1' && currentUser.email !== 'sysop') ? 'invisible pointer-events-none' : ''}`}><Edit2 className="w-5 h-5 pointer-events-none" /></button>
+                              <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl cursor-pointer ${user.role === 'admin_l1' || user.email === 'sysop' ? 'invisible pointer-events-none' : ''}`}><Trash2 className="w-5 h-5 pointer-events-none" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -993,6 +1056,32 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                         </div>
                       </div>
                     ))}
+                  </div>
+                ) : activeSubTab === 'logs' ? (
+                  <div className="divide-y">
+                    {operationLogs
+                      .filter(log => {
+                        const logDate = format(log.createdAt, 'yyyy-MM-dd');
+                        if (logDateFilter) return logDate === logDateFilter;
+                        if (logMonthFilter) return logDate.startsWith(logMonthFilter);
+                        return true;
+                      })
+                      .slice(0, logLimit)
+                      .map(log => (
+                        <div key={log.id} className="p-6 space-y-3">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">{format(log.createdAt, 'yyyy/MM/dd HH:mm:ss')}</span>
+                            <span className={`px-2 py-0.5 rounded-full ${log.action === 'login' ? 'bg-emerald-50 text-emerald-600' :
+                              log.action === 'delete' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                              }`}>{log.action}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-black text-slate-800">{log.userName}</span>
+                            <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">{log.module}</span>
+                          </div>
+                          <p className="text-sm text-slate-500 font-bold leading-relaxed">{log.details}</p>
+                        </div>
+                      ))}
                   </div>
                 ) : filteredUsers.map(user => (
                   <div key={user.id} className="p-6 space-y-4">
