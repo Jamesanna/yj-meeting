@@ -1,0 +1,6 @@
+/* Meeting Room System Styles */
+@layer base {
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
