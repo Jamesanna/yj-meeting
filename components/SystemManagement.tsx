@@ -105,6 +105,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.204',
+      title: '部門管理與關聯更新修復',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修復部門更名失效：修正更名邏輯，確保新的部門清單正確持久化至資料庫。',
+        '強化人員關聯同步：優化部門變更時的成員資料同步邏輯，解決更名後人員所屬部門與架構清單不一致的問題。'
+      ]
+    },
+    {
       version: 'v2.203',
       title: '虛擬資料維護邏輯修正',
       type: 'fix',
@@ -549,13 +559,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
       const oldName = departments[editingDeptIndex];
       const newDepts = [...departments];
       newDepts[editingDeptIndex] = trimmed;
+
+      // 同步更新資料庫中的清單與關聯人員
+      await dbService.updateDepartments(newDepts);
       const allUsers = await dbService.getUsers();
       const affectedUsers = allUsers.filter(u => u.department === oldName);
       for (const u of affectedUsers) await dbService.updateUser(u.id, { department: trimmed });
-      triggerToast(`更名成功。`);
+      triggerToast(`部門更名成功，已同步更新成員資料。`);
     } else {
       await dbService.updateDepartments([...departments, trimmed]);
-      triggerToast('新增成功');
+      triggerToast('部門新增成功');
     }
     await loadData(); setShowDeptModal(false); resetForm();
   };
