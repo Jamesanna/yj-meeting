@@ -169,6 +169,7 @@ const App: React.FC = () => {
     }
     localStorage.removeItem('gw_session');
     localStorage.removeItem('persisted_admin_session');
+    sessionStorage.removeItem('active_admin_session');
     setGoogleUser(null);
     setCurrentUser(null);
     setIsAdminLoggedIn(false);
@@ -198,9 +199,12 @@ const App: React.FC = () => {
         }
       }
       const persistedAdmin = localStorage.getItem('persisted_admin_session');
-      if (persistedAdmin) {
+      const activeAdminSess = sessionStorage.getItem('active_admin_session');
+      const adminToSync = activeAdminSess || persistedAdmin;
+
+      if (adminToSync) {
         try {
-          const userData = JSON.parse(persistedAdmin);
+          const userData = JSON.parse(adminToSync);
           const latestUsers = await dbService.getUsers();
           const latestAdmins = latestUsers.filter(u => u.role?.startsWith('admin'));
           const stillValid = latestAdmins.find(a => a.id === userData.id);
@@ -208,11 +212,17 @@ const App: React.FC = () => {
             setCurrentUser(stillValid);
             setIsAdminLoggedIn(true);
             setLoginAccount(stillValid.email);
-            setRememberAdmin(true);
+            if (persistedAdmin && adminToSync === persistedAdmin) {
+              setRememberAdmin(true);
+            }
           } else {
             localStorage.removeItem('persisted_admin_session');
+            sessionStorage.removeItem('active_admin_session');
           }
-        } catch (e) { localStorage.removeItem('persisted_admin_session'); }
+        } catch (e) {
+          localStorage.removeItem('persisted_admin_session');
+          sessionStorage.removeItem('active_admin_session');
+        }
       }
     };
     initSession();
@@ -241,6 +251,7 @@ const App: React.FC = () => {
       setIsLoginView(false);
       setLoginError('');
       setLoginPassword('');
+      sessionStorage.setItem('active_admin_session', JSON.stringify(match));
       if (rememberAdmin) localStorage.setItem('persisted_admin_session', JSON.stringify(match));
       else localStorage.removeItem('persisted_admin_session');
 

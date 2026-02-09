@@ -121,6 +121,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.211',
+      title: '系統穩定性與 UI 排版優化',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '登入狀態持久化：修復管理員在後台重新整理頁面會被自動登出的問題，現在除非點擊登出，否則重整維持登入狀態。',
+        '優化日誌排版：修正操作日誌內的標籤與名稱切字、斷行問題，並提升詳細資訊欄位的閱讀空間。'
+      ]
+    },
+    {
       version: 'v2.210',
       title: '系統稽核機制強化：操作日誌上線',
       type: 'feature',
@@ -959,18 +969,18 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                       .slice(0, logLimit)
                       .map(log => (
                         <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-10 py-5 text-xs text-slate-400">{format(log.createdAt, 'MM/dd HH:mm:ss')}</td>
-                          <td className="px-10 py-5 text-sm">{log.userName}</td>
-                          <td className="px-10 py-5"><span className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] uppercase">{log.module}</span></td>
+                          <td className="px-10 py-5 text-xs text-slate-400 whitespace-nowrap">{format(log.createdAt, 'MM/dd HH:mm:ss')}</td>
+                          <td className="px-10 py-5 text-sm whitespace-nowrap">{log.userName}</td>
+                          <td className="px-10 py-5"><span className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] uppercase whitespace-nowrap font-black">{log.module}</span></td>
                           <td className="px-10 py-5">
-                            <span className={`px-3 py-1 rounded-full text-[10px] ${log.action === 'login' ? 'bg-emerald-50 text-emerald-600' :
+                            <span className={`px-3 py-1 rounded-full text-[10px] whitespace-nowrap font-black ${log.action === 'login' ? 'bg-emerald-50 text-emerald-600' :
                               log.action === 'delete' ? 'bg-red-50 text-red-600' :
                                 log.action === 'create' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
                               }`}>
                               {log.action === 'login' ? '登入系統' : log.action === 'create' ? '新增資料' : log.action === 'update' ? '編輯更新' : log.action === 'delete' ? '刪除資料' : '登出系統'}
                             </span>
                           </td>
-                          <td className="px-10 py-5 text-sm font-medium text-slate-500 max-w-xs truncate" title={log.details}>{log.details}</td>
+                          <td className="px-10 py-5 text-sm font-medium text-slate-500 min-w-[300px] leading-relaxed break-all">{log.details}</td>
                         </tr>
                       )) : activeSubTab === 'announcements' ? announcements.map(ann => (
                         <tr key={ann.id} className="hover:bg-slate-50">
