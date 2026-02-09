@@ -105,6 +105,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.199',
+      title: '管理員穿透式登入優化',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '實現「一鍵直達」：若已透過 Google 登入且具備管理權限，點擊齒輪將直接進入後台，不再彈出二次登入視窗。',
+        '修復頁面重載權限遺失：現在刷新網頁後，系統會自動恢復 Google Admin 帳號的管理權限。'
+      ]
+    },
+    {
       version: 'v2.198',
       title: '登入驗證邏輯修復',
       type: 'fix',

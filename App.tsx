@@ -164,8 +164,16 @@ const App: React.FC = () => {
         const latestUsers = await dbService.getUsers();
         const userData = JSON.parse(savedGw);
         const stillExists = latestUsers.find(u => u.id === userData.id);
-        if (stillExists) setGoogleUser(stillExists);
-        else localStorage.removeItem('gw_session');
+        if (stillExists) {
+          setGoogleUser(stillExists);
+          setCurrentUser(stillExists);
+          // 關鍵修正：若重載頁面時帳號具備 admin 權限，自動維持管理員狀態
+          if (stillExists.role === 'admin') {
+            setIsAdminLoggedIn(true);
+          }
+        } else {
+          localStorage.removeItem('gw_session');
+        }
       }
       const persistedAdmin = localStorage.getItem('persisted_admin_session');
       if (persistedAdmin) {
@@ -465,7 +473,19 @@ const App: React.FC = () => {
             {sysSettings.showWifiInfo && (
               <button type="button" onClick={() => setShowWifiInfoModal(true)} className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"><Wifi className="w-5 h-5 pointer-events-none" /></button>
             )}
-            <button type="button" onClick={() => setIsLoginView(true)} className="p-2 text-slate-300 hover:text-slate-800 transition-colors"><Settings className="w-5 h-5 pointer-events-none" /></button>
+            <button
+              type="button"
+              onClick={() => {
+                if (currentUser?.role === 'admin') {
+                  setIsAdminLoggedIn(true);
+                } else {
+                  setIsLoginView(true);
+                }
+              }}
+              className="p-2 text-slate-300 hover:text-slate-800 transition-colors"
+            >
+              <Settings className="w-5 h-5 pointer-events-none" />
+            </button>
           </div>
         </div>
       </header>
