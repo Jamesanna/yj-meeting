@@ -103,6 +103,16 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.191',
+      title: 'API 金鑰效度校準',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '追蹤並處理 Google Auth 「API-KEY-NOT-VALID」異常。',
+        '進入 Firebase 專案參數校驗流程，確保生產環境連線配置正確。'
+      ]
+    },
+    {
       version: 'v2.190',
       title: '登入功能徹底修復',
       type: 'fix',
