@@ -95,6 +95,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   const [userRole, setUserRole] = useState<'admin' | 'user'>('user');
   const [deptNameInput, setDeptNameInput] = useState('');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const filteredUsers = useMemo(() => {
     if (activeSubTab === 'staff_management') return users.filter(u => u.role === 'user');
@@ -103,6 +104,18 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
   }, [users, activeSubTab]);
 
   const changelogs = [
+    {
+      version: 'v2.195',
+      title: '後台管理穩定性修復',
+      type: 'fix',
+      date: '2026-02-09',
+      logs: [
+        '修復「權限角色」切換後無法正常儲存之異常問題。',
+        '加入「儲存中」視覺回饋狀態，防止連點導致的資料衝突。',
+        '強化資料庫操作錯誤攔截 (Error Handling)，確保異常時能即時提示。',
+        '同步修正手機版介面的人員編輯邏輯漏洞。'
+      ]
+    },
     {
       version: 'v2.194',
       title: '登入介面交互體驗優化',
@@ -400,9 +413,28 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const handleSaveUser = async () => {
     if (!name.trim()) { setError('請輸入姓名'); return; }
-    if (editingItem) await dbService.updateUser(editingItem.id, { name, email, department, role: userRole, password: resetPwd || undefined });
-    else await dbService.addUser({ id: `u_${Date.now()}`, email, name, department, role: userRole, password: resetPwd });
-    await loadData(); setShowModal(false); resetForm(); triggerToast('資料已儲存');
+    setIsSaving(true);
+    try {
+      const userPayload: any = { name, email, department, role: userRole };
+      if (resetPwd) userPayload.password = resetPwd;
+
+      if (editingItem) {
+        await dbService.updateUser(editingItem.id, userPayload);
+      } else {
+        const id = `u_${Date.now()}`;
+        await dbService.addUser({ id, ...userPayload });
+      }
+
+      await loadData();
+      setShowModal(false);
+      resetForm();
+      triggerToast('人員資料已儲存');
+    } catch (e: any) {
+      console.error(e);
+      setError(`儲存失敗: ${e.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveDept = async () => {
@@ -777,7 +809,7 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setShowModal(true); }} className="p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90"><Edit2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => { setEditingItem(user); setName(user.name); setEmail(user.email); setDepartment(user.department || ''); setUserRole(user.role); setShowModal(true); }} className="p-4 bg-slate-50 rounded-xl text-slate-400 active:scale-90"><Edit2 className="w-4 h-4" /></button>
                         <button type="button" onClick={() => askDelete(user.id, 'user')} className={`p-4 bg-red-50 rounded-xl text-red-400 active:scale-90 ${user.id === 'admin_sysop' ? 'hidden' : ''}`}><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -827,7 +859,12 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
                 </>
               )}
             </div>
-            <div className="px-8 py-6 bg-slate-50 flex justify-end gap-3 border-t shrink-0"><button type="button" onClick={() => setShowModal(false)} className="px-6 py-2 text-slate-400 font-bold hover:bg-slate-100 rounded-xl cursor-pointer">取消</button><button type="button" onClick={activeSubTab === 'announcements' ? handleSaveAnnouncement : handleSaveUser} className="px-10 py-3 bg-blue-600 text-white font-black rounded-xl shadow-lg active:scale-95 flex-1 md:flex-none cursor-pointer text-sm">確認儲存</button></div>
+            <div className="px-8 py-6 bg-slate-50 flex justify-end gap-3 border-t shrink-0">
+              <button type="button" disabled={isSaving} onClick={() => setShowModal(false)} className="px-6 py-2 text-slate-400 font-bold hover:bg-slate-100 rounded-xl cursor-pointer disabled:opacity-50">取消</button>
+              <button type="button" disabled={isSaving} onClick={activeSubTab === 'announcements' ? handleSaveAnnouncement : handleSaveUser} className="px-10 py-3 bg-blue-600 text-white font-black rounded-xl shadow-lg active:scale-95 flex-1 md:flex-none cursor-pointer text-sm disabled:bg-slate-400">
+                {isSaving ? '處理中...' : '確認儲存'}
+              </button>
+            </div>
           </div>
         </div>
       )}
