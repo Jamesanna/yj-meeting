@@ -9,9 +9,9 @@ import BookingModal from './components/BookingModal';
 import AdminSidebar from './components/AdminSidebar';
 import SystemManagement from './components/SystemManagement';
 import { QRCodeCanvas } from 'qrcode.react';
-import { 
-  Lock, 
-  X, 
+import {
+  Lock,
+  X,
   Trash2,
   Edit2,
   LogOut,
@@ -40,14 +40,14 @@ const App: React.FC = () => {
   // --- States ---
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null); 
-  const [googleUser, setGoogleUser] = useState<User | null>(null);   
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [googleUser, setGoogleUser] = useState<User | null>(null);
   const [isInternalNetwork, setIsInternalNetwork] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showQuickBookQrModal, setShowQuickBookQrModal] = useState(false);
-  const [showWifiInfoModal, setShowWifiInfoModal] = useState(false); 
+  const [showWifiInfoModal, setShowWifiInfoModal] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeAdminTab, setActiveAdminTab] = useState('bookings');
@@ -58,7 +58,7 @@ const App: React.FC = () => {
   const [whiteListError, setWhiteListError] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [rememberAdmin, setRememberAdmin] = useState(false);
-  
+
   // 刪除確認 State
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -96,26 +96,36 @@ const App: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     setWhiteListError('');
-    const allUsers = await dbService.getUsers();
-    const users = allUsers.filter(u => u.role === 'user');
-    const emails = users.map(u => u.email).filter(e => e.includes('@'));
-    
-    if (emails.length === 0) {
-      alert("目前後台員工清單中尚未設定任何 Google 帳號信箱，請管理員先至後台設定。");
-      return;
-    }
+    try {
+      const { auth } = await import('./services/firebase');
+      const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
 
-    const selectedEmail = emails[0]; 
-    const match = users.find(u => u.email === selectedEmail);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const userEmail = result.user.email;
 
-    if (match) {
-      setGoogleUser(match);
-      localStorage.setItem('gw_session', JSON.stringify(match));
-      if (window.location.search.includes('mode=express')) {
-        setTimeout(() => setShowBookingModal(true), 300);
+      if (!userEmail) {
+        alert("無法取得 Google 帳號 Email，請重試。");
+        return;
       }
-    } else {
-      setWhiteListError(`帳號 ${selectedEmail} 不在公司預約白名單內，請聯繫行政單位。`);
+
+      const allUsers = await dbService.getUsers();
+      const users = allUsers.filter(u => u.role === 'user');
+      const match = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
+
+      if (match) {
+        setGoogleUser(match);
+        localStorage.setItem('gw_session', JSON.stringify(match));
+        if (window.location.search.includes('mode=express')) {
+          setTimeout(() => setShowBookingModal(true), 300);
+        }
+      } else {
+        setWhiteListError(`帳號 ${userEmail} 不在公司預約白名單內，請聯繫行政單位。`);
+        await auth.signOut();
+      }
+    } catch (error) {
+      console.error("Google Login Error:", error);
+      alert("登入過程發生錯誤，請稍後再試。");
     }
   };
 
@@ -168,7 +178,7 @@ const App: React.FC = () => {
       setSelectedDate(today);
       if (getDay(today) !== 0 && getDay(today) !== 6 && !HOLIDAYS_2026[format(today, 'yyyy-MM-dd')]) {
         if (localStorage.getItem('gw_session')) {
-           setTimeout(() => setShowBookingModal(true), 500);
+          setTimeout(() => setShowBookingModal(true), 500);
         }
       }
     } else {
@@ -243,17 +253,17 @@ const App: React.FC = () => {
 
   const dailyBookings = bookings
     .filter(b => b.date === format(selectedDate, 'yyyy-MM-dd'))
-    .sort((a,b) => a.startTime.localeCompare(b.startTime));
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   const isSelectedDatePast = format(selectedDate, 'yyyy-MM-dd') < format(new Date(), 'yyyy-MM-dd');
 
   if (isAdminLoggedIn) {
     return (
       <div className="flex h-screen bg-slate-50 overflow-hidden relative">
-        <AdminSidebar 
-          activeTab={activeAdminTab} 
-          setActiveTab={setActiveAdminTab} 
-          onLogout={handleLogoutAdmin} 
+        <AdminSidebar
+          activeTab={activeAdminTab}
+          setActiveTab={setActiveAdminTab}
+          onLogout={handleLogoutAdmin}
           onReturnToFrontend={() => setIsAdminLoggedIn(false)}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -262,15 +272,15 @@ const App: React.FC = () => {
         {/* 後台專用刪除確認彈窗 */}
         {deleteConfirmId && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in">
-             <div className="bg-white rounded-[2rem] p-8 max-w-xs w-full shadow-2xl border border-red-100 animate-in zoom-in-95 text-center">
-                <ShieldAlertIcon className="w-16 h-16 text-red-500 mx-auto mb-6 animate-pulse" />
-                <h3 className="text-xl font-black text-slate-800 mb-3">刪除此筆預約？</h3>
-                <p className="text-sm text-slate-500 mb-8 leading-relaxed">執行後此時段將重新釋出，<br/>該動作無法復原。</p>
-                <div className="flex flex-col space-y-3">
-                   <button onClick={executeDeleteBooking} className="w-full py-4 bg-red-600 text-white font-black rounded-xl shadow-lg shadow-red-200 active:scale-95">確認執行刪除</button>
-                   <button onClick={() => setDeleteConfirmId(null)} className="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-xl">取消返回</button>
-                </div>
-             </div>
+            <div className="bg-white rounded-[2rem] p-8 max-w-xs w-full shadow-2xl border border-red-100 animate-in zoom-in-95 text-center">
+              <ShieldAlertIcon className="w-16 h-16 text-red-500 mx-auto mb-6 animate-pulse" />
+              <h3 className="text-xl font-black text-slate-800 mb-3">刪除此筆預約？</h3>
+              <p className="text-sm text-slate-500 mb-8 leading-relaxed">執行後此時段將重新釋出，<br />該動作無法復原。</p>
+              <div className="flex flex-col space-y-3">
+                <button onClick={executeDeleteBooking} className="w-full py-4 bg-red-600 text-white font-black rounded-xl shadow-lg shadow-red-200 active:scale-95">確認執行刪除</button>
+                <button onClick={() => setDeleteConfirmId(null)} className="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-xl">取消返回</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -283,20 +293,20 @@ const App: React.FC = () => {
                 <div className="flex items-center space-x-1.5 md:space-x-2">
                   <span className="px-1.5 py-0.5 v2-badge text-white text-[9px] rounded-md font-bold shrink-0">{VERSION}</span>
                   <div className="flex items-center space-x-1 bg-slate-800 text-white px-2 py-0.5 rounded-md admin-mode-pulse shrink-0">
-                     <ShieldCheck className="w-2.5 h-2.5 text-blue-400 pointer-events-none" />
-                     <span className="text-[9px] font-black tracking-widest uppercase hidden xs:inline">管理模式</span>
+                    <ShieldCheck className="w-2.5 h-2.5 text-blue-400 pointer-events-none" />
+                    <span className="text-[9px] font-black tracking-widest uppercase hidden xs:inline">管理模式</span>
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center space-x-2 md:space-x-3 shrink-0">
-               <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-bold text-slate-800">Admin: {currentUser?.name}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Sysop</span>
-               </div>
-               <div className="w-9 h-9 bg-slate-800 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-lg shadow-slate-200">
-                  {currentUser?.name?.charAt(0)}
-               </div>
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-xs font-bold text-slate-800">Admin: {currentUser?.name}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Sysop</span>
+              </div>
+              <div className="w-9 h-9 bg-slate-800 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-lg shadow-slate-200">
+                {currentUser?.name?.charAt(0)}
+              </div>
             </div>
           </header>
           <main className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
@@ -306,93 +316,93 @@ const App: React.FC = () => {
                   <Calendar bookings={bookings} selectedDate={selectedDate} onDateSelect={handleDateSelect} />
                 </div>
                 <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
-                   <div className="p-6 md:p-8 bg-slate-50/50 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div>
-                        <h4 className="font-semibold text-slate-800 text-lg">{format(selectedDate, 'yyyy/MM/dd')}</h4>
-                        <p className="text-xs font-medium text-slate-400">預約詳情清單</p>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => { 
-                          const dateStr = format(selectedDate, 'yyyy-MM-dd');
-                          const isWeekend = getDay(selectedDate) === 0 || getDay(selectedDate) === 6;
-                          const isPast = dateStr < format(new Date(), 'yyyy-MM-dd');
-                          const isHoliday = !!HOLIDAYS_2026[dateStr];
-                          if (isWeekend || isPast || isHoliday) {
-                            alert(`該日期 (${isHoliday ? HOLIDAYS_2026[dateStr] : "非工作日"}) 不開放預約登記`);
-                            return;
-                          }
-                          setEditingBooking(null); 
-                          setShowBookingModal(true); 
-                        }}
-                        className="flex items-center justify-center space-x-2 px-6 py-2.5 bg-[#e54304] text-white rounded-xl font-medium text-sm shadow-lg hover:bg-black transition-all active:scale-95 w-full sm:w-auto"
-                      >
-                         <Plus className="w-4 h-4 pointer-events-none" />
-                         <span>新增預約</span>
-                      </button>
-                   </div>
-                   
-                   <div className="hidden md:block overflow-x-auto">
-                      <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-[10px] font-semibold text-slate-400 uppercase tracking-widest border-b">
-                          <tr>
-                            <th className="px-8 py-4">時段</th>
-                            <th className="px-8 py-4">預約人</th>
-                            <th className="px-8 py-4">用途</th>
-                            <th className="px-8 py-4 text-center">操作</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y text-sm">
-                          {dailyBookings.length > 0 ? dailyBookings.map(b => (
-                            <tr key={b.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-8 py-4 font-bold text-blue-600 whitespace-nowrap">{b.startTime} - {b.endTime}</td>
-                              <td className="px-8 py-4 font-bold text-slate-700 whitespace-nowrap">{b.userName}</td>
-                              <td className="px-8 py-4 text-slate-500 font-medium truncate max-w-xs">{b.purpose}</td>
-                              <td className="px-8 py-4">
-                                <div className="flex justify-center items-center space-x-2">
-                                  <button onClick={() => { setEditingBooking(b); setShowBookingModal(true); }} className="p-4 text-slate-400 hover:text-blue-600 active:scale-90 bg-slate-50 hover:bg-blue-50 rounded-xl transition-all"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
-                                  <button onClick={() => setDeleteConfirmId(b.id)} className="p-4 text-slate-400 hover:text-red-600 active:scale-90 bg-slate-50 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4 pointer-events-none" /></button>
-                                </div>
-                              </td>
-                            </tr>
-                          )) : (
-                            <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-300 font-medium italic">本日無預約資料</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                   </div>
+                  <div className="p-6 md:p-8 bg-slate-50/50 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h4 className="font-semibold text-slate-800 text-lg">{format(selectedDate, 'yyyy/MM/dd')}</h4>
+                      <p className="text-xs font-medium text-slate-400">預約詳情清單</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                        const isWeekend = getDay(selectedDate) === 0 || getDay(selectedDate) === 6;
+                        const isPast = dateStr < format(new Date(), 'yyyy-MM-dd');
+                        const isHoliday = !!HOLIDAYS_2026[dateStr];
+                        if (isWeekend || isPast || isHoliday) {
+                          alert(`該日期 (${isHoliday ? HOLIDAYS_2026[dateStr] : "非工作日"}) 不開放預約登記`);
+                          return;
+                        }
+                        setEditingBooking(null);
+                        setShowBookingModal(true);
+                      }}
+                      className="flex items-center justify-center space-x-2 px-6 py-2.5 bg-[#e54304] text-white rounded-xl font-medium text-sm shadow-lg hover:bg-black transition-all active:scale-95 w-full sm:w-auto"
+                    >
+                      <Plus className="w-4 h-4 pointer-events-none" />
+                      <span>新增預約</span>
+                    </button>
+                  </div>
 
-                   <div className="md:hidden divide-y">
-                      {dailyBookings.length > 0 ? dailyBookings.map(b => (
-                        <div key={b.id} className="p-5 space-y-3 bg-white">
-                           <div className="flex justify-between items-start">
-                              <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black">
-                                 {b.startTime} - {b.endTime}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 text-[10px] font-semibold text-slate-400 uppercase tracking-widest border-b">
+                        <tr>
+                          <th className="px-8 py-4">時段</th>
+                          <th className="px-8 py-4">預約人</th>
+                          <th className="px-8 py-4">用途</th>
+                          <th className="px-8 py-4 text-center">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y text-sm">
+                        {dailyBookings.length > 0 ? dailyBookings.map(b => (
+                          <tr key={b.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-8 py-4 font-bold text-blue-600 whitespace-nowrap">{b.startTime} - {b.endTime}</td>
+                            <td className="px-8 py-4 font-bold text-slate-700 whitespace-nowrap">{b.userName}</td>
+                            <td className="px-8 py-4 text-slate-500 font-medium truncate max-w-xs">{b.purpose}</td>
+                            <td className="px-8 py-4">
+                              <div className="flex justify-center items-center space-x-2">
+                                <button onClick={() => { setEditingBooking(b); setShowBookingModal(true); }} className="p-4 text-slate-400 hover:text-blue-600 active:scale-90 bg-slate-50 hover:bg-blue-50 rounded-xl transition-all"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
+                                <button onClick={() => setDeleteConfirmId(b.id)} className="p-4 text-slate-400 hover:text-red-600 active:scale-90 bg-slate-50 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4 pointer-events-none" /></button>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                 <button onClick={() => { setEditingBooking(b); setShowBookingModal(true); }} className="p-5 text-slate-500 bg-slate-50 rounded-xl active:scale-90"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
-                                 <button onClick={() => setDeleteConfirmId(b.id)} className="p-5 text-red-400 bg-red-50 rounded-xl active:scale-90"><Trash2 className="w-4 h-4 pointer-events-none" /></button>
-                              </div>
-                           </div>
-                           <div>
-                              <p className="text-base font-black text-slate-800">{b.userName}</p>
-                              <p className="text-xs text-slate-500 font-bold mt-1">{b.purpose}</p>
-                           </div>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-300 font-medium italic">本日無預約資料</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="md:hidden divide-y">
+                    {dailyBookings.length > 0 ? dailyBookings.map(b => (
+                      <div key={b.id} className="p-5 space-y-3 bg-white">
+                        <div className="flex justify-between items-start">
+                          <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black">
+                            {b.startTime} - {b.endTime}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button onClick={() => { setEditingBooking(b); setShowBookingModal(true); }} className="p-5 text-slate-500 bg-slate-50 rounded-xl active:scale-90"><Edit2 className="w-4 h-4 pointer-events-none" /></button>
+                            <button onClick={() => setDeleteConfirmId(b.id)} className="p-5 text-red-400 bg-red-50 rounded-xl active:scale-90"><Trash2 className="w-4 h-4 pointer-events-none" /></button>
+                          </div>
                         </div>
-                      )) : (
-                        <div className="p-10 text-center text-slate-300 font-medium italic">本日無預約資料</div>
-                      )}
-                   </div>
+                        <div>
+                          <p className="text-base font-black text-slate-800">{b.userName}</p>
+                          <p className="text-xs text-slate-500 font-bold mt-1">{b.purpose}</p>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="p-10 text-center text-slate-300 font-medium italic">本日無預約資料</div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : <SystemManagement currentUser={currentUser!} onDataUpdate={loadData} />}
           </main>
         </div>
         {showBookingModal && (
-          <BookingModal 
-            date={selectedDate} googleUser={currentUser} isInternalNetwork={true} 
-            onGoogleLogin={() => {}} onGoogleLogout={handleGoogleLogout} editingBooking={editingBooking}
-            onClose={() => { setShowBookingModal(false); setEditingBooking(null); }} 
+          <BookingModal
+            date={selectedDate} googleUser={currentUser} isInternalNetwork={true}
+            onGoogleLogin={() => { }} onGoogleLogout={handleGoogleLogout} editingBooking={editingBooking}
+            onClose={() => { setShowBookingModal(false); setEditingBooking(null); }}
             onSave={saveBooking} existingBookings={bookings.filter(b => b.date === format(selectedDate, 'yyyy-MM-dd'))}
             requireGoogleLogin={sysSettings.requireGoogleLogin}
           />
@@ -415,8 +425,8 @@ const App: React.FC = () => {
               <span className="text-[9px] md:text-[10px] text-orange-500 font-medium tracking-widest uppercase shrink-0">{VERSION}</span>
               {isInternalNetwork && (
                 <div className="flex items-center text-[8px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-md border border-green-100 shrink-0">
-                   <div className="w-1 h-1 bg-green-500 rounded-full mr-1 wifi-pulse"></div>
-                   <span className="hidden xs:inline">{sysSettings.corpSsid}</span>
+                  <div className="w-1 h-1 bg-green-500 rounded-full mr-1 wifi-pulse"></div>
+                  <span className="hidden xs:inline">{sysSettings.corpSsid}</span>
                 </div>
               )}
             </div>
@@ -424,13 +434,13 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center space-x-1.5 md:space-x-3 shrink-0">
           {googleUser ? (
-             <div className="flex items-center bg-slate-900 text-white rounded-full pl-1 pr-3 py-1 border border-slate-800 shadow-sm animate-in fade-in slide-in-from-right-4">
-                <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 shadow-inner">{googleUser.name.charAt(0)}</div>
-                <span className="ml-2 text-[11px] font-bold hidden sm:inline whitespace-nowrap">{googleUser.name}</span>
-                <button type="button" onClick={handleGoogleLogout} className="ml-2 p-1 text-slate-500 hover:text-red-400 transition-colors" title="登出帳號"><LogOut className="w-3.5 h-3.5 pointer-events-none" /></button>
-             </div>
+            <div className="flex items-center bg-slate-900 text-white rounded-full pl-1 pr-3 py-1 border border-slate-800 shadow-sm animate-in fade-in slide-in-from-right-4">
+              <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 shadow-inner">{googleUser.name.charAt(0)}</div>
+              <span className="ml-2 text-[11px] font-bold hidden sm:inline whitespace-nowrap">{googleUser.name}</span>
+              <button type="button" onClick={handleGoogleLogout} className="ml-2 p-1 text-slate-500 hover:text-red-400 transition-colors" title="登出帳號"><LogOut className="w-3.5 h-3.5 pointer-events-none" /></button>
+            </div>
           ) : (
-             <button type="button" onClick={handleGoogleLogin} className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100 hover:bg-blue-600 hover:text-white transition-all text-[11px] font-bold shadow-sm"><UserCircle className="w-4 h-4 pointer-events-none" /><span>登入</span></button>
+            <button type="button" onClick={handleGoogleLogin} className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100 hover:bg-blue-600 hover:text-white transition-all text-[11px] font-bold shadow-sm"><UserCircle className="w-4 h-4 pointer-events-none" /><span>登入</span></button>
           )}
           <div className="h-4 w-[1px] bg-slate-200 hidden xs:block"></div>
           <div className="flex items-center space-x-1">
@@ -452,131 +462,130 @@ const App: React.FC = () => {
       )}
       <main className="max-w-3xl mx-auto w-full flex-1 flex flex-col no-scrollbar">
         <div className="py-6 md:py-10 px-4 float-in">
-           <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-slate-200/40 border border-slate-100 p-4 md:p-10 transition-all overflow-visible"><Calendar bookings={bookings} selectedDate={selectedDate} onDateSelect={handleDateSelect} /></div>
+          <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-slate-200/40 border border-slate-100 p-4 md:p-10 transition-all overflow-visible"><Calendar bookings={bookings} selectedDate={selectedDate} onDateSelect={handleDateSelect} /></div>
         </div>
         <div className="px-4 md:px-6 space-y-6 md:space-y-8 pb-10 overflow-x-hidden">
-           <div className="space-y-4">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="font-semibold text-slate-800 text-lg flex items-center"><span className="w-1.5 h-6 v2-badge rounded-full mr-3"></span>{format(selectedDate, 'MM月dd日')} 預約詳情</h3>
-                <span className="text-[10px] font-medium text-slate-300 tracking-widest uppercase">Total {dailyBookings.length}</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="font-semibold text-slate-800 text-lg flex items-center"><span className="w-1.5 h-6 v2-badge rounded-full mr-3"></span>{format(selectedDate, 'MM月dd日')} 預約詳情</h3>
+              <span className="text-[10px] font-medium text-slate-300 tracking-widest uppercase">Total {dailyBookings.length}</span>
+            </div>
+            {dailyBookings.length > 0 ? (
+              <div className="grid gap-3">
+                {dailyBookings.map((b) => (
+                  <div key={b.id} className="bg-white border border-slate-100 p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] flex items-center space-x-4 md:space-x-5 hover:border-orange-200 hover:bg-orange-50/10 transition-all group">
+                    <div className={`w-16 md:w-20 py-2.5 md:py-3 ${isSelectedDatePast ? 'bg-slate-100' : 'bg-orange-50'} rounded-2xl flex flex-col items-center group-hover:bg-orange-600 transition-colors shrink-0`}>
+                      <span className={`text-[9px] md:text-[10px] font-medium ${isSelectedDatePast ? 'text-slate-400' : 'text-orange-600'} group-hover:text-white`}>{b.startTime}</span>
+                      <div className="w-3 h-0.5 bg-current opacity-10 my-0.5"></div>
+                      <span className={`text-[9px] md:text-[10px] font-medium ${isSelectedDatePast ? 'text-slate-300' : 'text-orange-400'} group-hover:text-orange-100`}>{b.endTime}</span>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <h4 className="font-semibold text-slate-800 text-sm md:text-base mb-0.5 truncate">{b.userName}</h4>
+                      <p className="text-xs text-slate-400 font-medium truncate">{b.purpose}</p>
+                    </div>
+                    <div className="pr-1 shrink-0"><div className={`w-2.5 h-2.5 rounded-full ${isSelectedDatePast ? 'bg-slate-200' : 'bg-green-500'}`}></div></div>
+                  </div>
+                ))}
               </div>
-              {dailyBookings.length > 0 ? (
-                <div className="grid gap-3">
-                   {dailyBookings.map((b) => (
-                      <div key={b.id} className="bg-white border border-slate-100 p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] flex items-center space-x-4 md:space-x-5 hover:border-orange-200 hover:bg-orange-50/10 transition-all group">
-                         <div className={`w-16 md:w-20 py-2.5 md:py-3 ${isSelectedDatePast ? 'bg-slate-100' : 'bg-orange-50'} rounded-2xl flex flex-col items-center group-hover:bg-orange-600 transition-colors shrink-0`}>
-                            <span className={`text-[9px] md:text-[10px] font-medium ${isSelectedDatePast ? 'text-slate-400' : 'text-orange-600'} group-hover:text-white`}>{b.startTime}</span>
-                            <div className="w-3 h-0.5 bg-current opacity-10 my-0.5"></div>
-                            <span className={`text-[9px] md:text-[10px] font-medium ${isSelectedDatePast ? 'text-slate-300' : 'text-orange-400'} group-hover:text-orange-100`}>{b.endTime}</span>
-                         </div>
-                         <div className="flex-1 overflow-hidden">
-                            <h4 className="font-semibold text-slate-800 text-sm md:text-base mb-0.5 truncate">{b.userName}</h4>
-                            <p className="text-xs text-slate-400 font-medium truncate">{b.purpose}</p>
-                         </div>
-                         <div className="pr-1 shrink-0"><div className={`w-2.5 h-2.5 rounded-full ${isSelectedDatePast ? 'bg-slate-200' : 'bg-green-500'}`}></div></div>
-                      </div>
-                   ))}
-                </div>
-              ) : (
-                <div className="py-16 md:py-20 text-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
-                   <Clock className="w-10 h-10 text-slate-200 mx-auto mb-4 pointer-events-none" /><p className="text-slate-300 font-medium italic">本日尚無預約資料</p>
-                </div>
-              )}
-           </div>
+            ) : (
+              <div className="py-16 md:py-20 text-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
+                <Clock className="w-10 h-10 text-slate-200 mx-auto mb-4 pointer-events-none" /><p className="text-slate-300 font-medium italic">本日尚無預約資料</p>
+              </div>
+            )}
+          </div>
         </div>
         <footer className="mt-auto py-6 bg-slate-900 text-white flex flex-col items-center shrink-0">
-           <div className="v2-badge p-2 rounded-lg mb-2 shadow-lg"><Sparkles className="w-4 h-4 text-white pointer-events-none" /></div>
-           <div className="text-center px-4">
-              <p className="text-[10px] font-medium tracking-[0.2em] uppercase opacity-80">{SYSTEM_TITLE}</p>
-              <div className="flex items-center justify-center space-x-2 text-[9px] font-medium text-slate-500 uppercase tracking-widest mt-1"><span>Meeting Hub</span><span className="w-1 h-1 bg-slate-700 rounded-full"></span><span>{VERSION}</span></div>
-           </div>
+          <div className="v2-badge p-2 rounded-lg mb-2 shadow-lg"><Sparkles className="w-4 h-4 text-white pointer-events-none" /></div>
+          <div className="text-center px-4">
+            <p className="text-[10px] font-medium tracking-[0.2em] uppercase opacity-80">{SYSTEM_TITLE}</p>
+            <div className="flex items-center justify-center space-x-2 text-[9px] font-medium text-slate-500 uppercase tracking-widest mt-1"><span>Meeting Hub</span><span className="w-1 h-1 bg-slate-700 rounded-full"></span><span>{VERSION}</span></div>
+          </div>
         </footer>
       </main>
       {showBookingModal && (
-        <BookingModal 
+        <BookingModal
           date={selectedDate} googleUser={googleUser} isInternalNetwork={isInternalNetwork}
           onGoogleLogin={handleGoogleLogin} onGoogleLogout={handleGoogleLogout} editingBooking={editingBooking}
-          onClose={() => { setShowBookingModal(false); setEditingBooking(null); }} 
+          onClose={() => { setShowBookingModal(false); setEditingBooking(null); }}
           onSave={saveBooking} existingBookings={bookings.filter(b => b.date === format(selectedDate, 'yyyy-MM-dd'))}
           requireGoogleLogin={sysSettings.requireGoogleLogin}
         />
       )}
       {showWifiInfoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in" onClick={() => setShowWifiInfoModal(false)}>
-           <div className="w-full max-w-md bg-white rounded-[2rem] p-6 md:p-8 shadow-2xl animate-in zoom-in-95 relative overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-purple-600"></div>
-              <div className="flex justify-between items-start mb-6 shrink-0">
-                 <div className="flex items-center">
-                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mr-4 shrink-0"><Wifi className="w-6 h-6 text-blue-600 pointer-events-none" /></div>
-                    <div>
-                      <h3 className="text-base md:text-lg font-black text-slate-800 tracking-tight leading-tight">羿鈞科技尊榮貴賓<br/>無線網路連線指引</h3>
-                      <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Guest Access Guide</p>
-                    </div>
-                 </div>
-                 <button type="button" onClick={() => setShowWifiInfoModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-300 pointer-events-none" /></button>
-              </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar space-y-5">
-                <div className="bg-blue-50/50 p-5 rounded-[1.5rem] border border-blue-100 space-y-3">
-                   <h4 className="text-xs font-bold text-blue-900 flex items-center"><InfoIcon className="w-4 h-4 mr-2 pointer-events-none" />連線步驟說明</h4>
-                   <div className="space-y-3 text-xs leading-relaxed text-slate-600 font-medium">
-                      <p>一、請先連線來賓專用 SSID：『 <span className="font-bold text-slate-900">{sysSettings.guestSsid}</span> 』</p>
-                      <p>二、連線成功後，請直接開啟裝置的瀏覽器，密碼請輸入『 <span className="font-bold text-slate-900">{sysSettings.guestPwd}</span> 』即可連線。</p>
-                   </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 items-center">
-                   <div className="space-y-3">
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100"><p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">SSID</p><p className="text-xl font-black text-blue-600 break-all">{sysSettings.guestSsid}</p></div>
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100"><p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">PASSWORD</p><p className="text-xl font-black text-orange-600 break-all tracking-wider">{sysSettings.guestPwd}</p></div>
-                   </div>
-                   <div className="flex flex-col items-center bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3">或掃描快速連線</p><QRCodeCanvas value={wifiConnectString} size={100} level="H" marginSize={1} />
-                   </div>
+          <div className="w-full max-w-md bg-white rounded-[2rem] p-6 md:p-8 shadow-2xl animate-in zoom-in-95 relative overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-purple-600"></div>
+            <div className="flex justify-between items-start mb-6 shrink-0">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mr-4 shrink-0"><Wifi className="w-6 h-6 text-blue-600 pointer-events-none" /></div>
+                <div>
+                  <h3 className="text-base md:text-lg font-black text-slate-800 tracking-tight leading-tight">羿鈞科技尊榮貴賓<br />無線網路連線指引</h3>
+                  <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Guest Access Guide</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowWifiInfoModal(false)} className="w-full mt-6 bg-slate-900 text-white font-semibold py-3.5 rounded-2xl shadow-xl active:scale-95 text-sm">我了解了</button>
-           </div>
+              <button type="button" onClick={() => setShowWifiInfoModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5 text-slate-300 pointer-events-none" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-5">
+              <div className="bg-blue-50/50 p-5 rounded-[1.5rem] border border-blue-100 space-y-3">
+                <h4 className="text-xs font-bold text-blue-900 flex items-center"><InfoIcon className="w-4 h-4 mr-2 pointer-events-none" />連線步驟說明</h4>
+                <div className="space-y-3 text-xs leading-relaxed text-slate-600 font-medium">
+                  <p>一、請先連線來賓專用 SSID：『 <span className="font-bold text-slate-900">{sysSettings.guestSsid}</span> 』</p>
+                  <p>二、連線成功後，請直接開啟裝置的瀏覽器，密碼請輸入『 <span className="font-bold text-slate-900">{sysSettings.guestPwd}</span> 』即可連線。</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 items-center">
+                <div className="space-y-3">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100"><p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">SSID</p><p className="text-xl font-black text-blue-600 break-all">{sysSettings.guestSsid}</p></div>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100"><p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-1">PASSWORD</p><p className="text-xl font-black text-orange-600 break-all tracking-wider">{sysSettings.guestPwd}</p></div>
+                </div>
+                <div className="flex flex-col items-center bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-3">或掃描快速連線</p><QRCodeCanvas value={wifiConnectString} size={100} level="H" marginSize={1} />
+                </div>
+              </div>
+            </div>
+            <button type="button" onClick={() => setShowWifiInfoModal(false)} className="w-full mt-6 bg-slate-900 text-white font-semibold py-3.5 rounded-2xl shadow-xl active:scale-95 text-sm">我了解了</button>
+          </div>
         </div>
       )}
       {isLoginView && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in">
-           <div className="w-full max-w-sm bg-white rounded-[2rem] p-8 md:p-10 shadow-2xl animate-in zoom-in-95">
-              <div className="flex justify-end -mt-4 -mr-4 mb-2"><button type="button" onClick={() => setIsLoginView(false)} className="p-2 text-slate-300 hover:text-slate-800 transition-colors"><X className="w-6 h-6 pointer-events-none" /></button></div>
-              <div className="text-center mb-6">
-                <div className="w-14 h-14 bg-slate-100 rounded-[1.2rem] flex items-center justify-center mx-auto mb-3 transition-transform hover:scale-110 duration-300"><Lock className="w-7 h-7 text-slate-800 pointer-events-none" /></div>
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight">管理員登入</h2>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium tracking-widest uppercase">Meeting Hub Admin</p>
-              </div>
-              <div className="space-y-3.5">
-                {loginError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-medium border border-red-100 flex items-center animate-shake"><ShieldAlert className="w-4 h-4 mr-2 pointer-events-none" />{loginError}</div>}
-                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Account</label><input type="text" className="w-full px-5 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-slate-800 transition-all font-bold text-black text-sm" placeholder="請輸入帳號" value={loginAccount} onChange={(e) => setLoginAccount(e.target.value)} /></div>
-                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Password</label><div className="relative"><input type={showLoginPassword ? "text" : "password"} className="w-full px-5 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-slate-800 transition-all font-bold text-black pr-12 text-sm" placeholder="請輸入密碼" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} /><button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-800 transition-colors">{showLoginPassword ? <EyeOff className="w-5 h-5 pointer-events-none" /> : <Eye className="w-5 h-5 pointer-events-none" />}</button></div></div>
-                
-                {/* 記住帳號 Checkbox 視覺強化 */}
-                <div className="flex items-center px-1 pt-1.5 group">
-                  <div 
-                    onClick={() => setRememberAdmin(!rememberAdmin)} 
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer mr-3 shrink-0 ${
-                      rememberAdmin ? 'bg-slate-900 border-slate-900 shadow-md' : 'bg-white border-slate-200 group-hover:border-slate-400'
-                    }`}
-                  >
-                    {rememberAdmin && <Check className="w-3.5 h-3.5 text-white pointer-events-none animate-in zoom-in-50" />}
-                  </div>
-                  <span onClick={() => setRememberAdmin(!rememberAdmin)} className="text-xs font-bold text-slate-500 cursor-pointer select-none group-hover:text-slate-800 transition-colors">記住此帳號</span>
-                </div>
+          <div className="w-full max-w-sm bg-white rounded-[2rem] p-8 md:p-10 shadow-2xl animate-in zoom-in-95">
+            <div className="flex justify-end -mt-4 -mr-4 mb-2"><button type="button" onClick={() => setIsLoginView(false)} className="p-2 text-slate-300 hover:text-slate-800 transition-colors"><X className="w-6 h-6 pointer-events-none" /></button></div>
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-slate-100 rounded-[1.2rem] flex items-center justify-center mx-auto mb-3 transition-transform hover:scale-110 duration-300"><Lock className="w-7 h-7 text-slate-800 pointer-events-none" /></div>
+              <h2 className="text-xl font-bold text-slate-800 tracking-tight">管理員登入</h2>
+              <p className="text-[10px] text-slate-400 mt-1 font-medium tracking-widest uppercase">Meeting Hub Admin</p>
+            </div>
+            <div className="space-y-3.5">
+              {loginError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-medium border border-red-100 flex items-center animate-shake"><ShieldAlert className="w-4 h-4 mr-2 pointer-events-none" />{loginError}</div>}
+              <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Account</label><input type="text" className="w-full px-5 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-slate-800 transition-all font-bold text-black text-sm" placeholder="請輸入帳號" value={loginAccount} onChange={(e) => setLoginAccount(e.target.value)} /></div>
+              <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Password</label><div className="relative"><input type={showLoginPassword ? "text" : "password"} className="w-full px-5 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-slate-800 transition-all font-bold text-black pr-12 text-sm" placeholder="請輸入密碼" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} /><button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-800 transition-colors">{showLoginPassword ? <EyeOff className="w-5 h-5 pointer-events-none" /> : <Eye className="w-5 h-5 pointer-events-none" />}</button></div></div>
 
-                <button type="button" onClick={() => handleAdminLogin()} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95 mt-3 text-sm tracking-widest uppercase">進入管理介面</button>
+              {/* 記住帳號 Checkbox 視覺強化 */}
+              <div className="flex items-center px-1 pt-1.5 group">
+                <div
+                  onClick={() => setRememberAdmin(!rememberAdmin)}
+                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer mr-3 shrink-0 ${rememberAdmin ? 'bg-slate-900 border-slate-900 shadow-md' : 'bg-white border-slate-200 group-hover:border-slate-400'
+                    }`}
+                >
+                  {rememberAdmin && <Check className="w-3.5 h-3.5 text-white pointer-events-none animate-in zoom-in-50" />}
+                </div>
+                <span onClick={() => setRememberAdmin(!rememberAdmin)} className="text-xs font-bold text-slate-500 cursor-pointer select-none group-hover:text-slate-800 transition-colors">記住此帳號</span>
               </div>
-           </div>
+
+              <button type="button" onClick={() => handleAdminLogin()} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95 mt-3 text-sm tracking-widest uppercase">進入管理介面</button>
+            </div>
+          </div>
         </div>
       )}
       {showQuickBookQrModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md animate-in fade-in" onClick={() => setShowQuickBookQrModal(false)}>
-           <div className="bg-white p-8 rounded-[2rem] shadow-2xl flex flex-col items-center animate-in zoom-in-95 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-              <h4 className="text-base font-semibold text-slate-800 mb-6 flex items-center"><Zap className="w-4 h-4 text-orange-500 mr-2.5 fill-orange-500 pointer-events-none" />快速預約碼</h4>
-              <div className="bg-slate-50 p-5 rounded-[1.5rem] border-2 border-dashed border-slate-200"><QRCodeCanvas value={quickBookUrl} size={160} level="L" marginSize={1} /></div>
-              <p className="mt-6 text-[10px] font-medium text-slate-400 text-center leading-relaxed">偵測公司內網後可享快速登記</p>
-              <button type="button" onClick={() => setShowQuickBookQrModal(false)} className="mt-8 w-full py-3.5 bg-slate-900 text-white font-semibold rounded-2xl shadow-xl active:scale-95 text-sm">關閉</button>
-           </div>
+          <div className="bg-white p-8 rounded-[2rem] shadow-2xl flex flex-col items-center animate-in zoom-in-95 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <h4 className="text-base font-semibold text-slate-800 mb-6 flex items-center"><Zap className="w-4 h-4 text-orange-500 mr-2.5 fill-orange-500 pointer-events-none" />快速預約碼</h4>
+            <div className="bg-slate-50 p-5 rounded-[1.5rem] border-2 border-dashed border-slate-200"><QRCodeCanvas value={quickBookUrl} size={160} level="L" marginSize={1} /></div>
+            <p className="mt-6 text-[10px] font-medium text-slate-400 text-center leading-relaxed">偵測公司內網後可享快速登記</p>
+            <button type="button" onClick={() => setShowQuickBookQrModal(false)} className="mt-8 w-full py-3.5 bg-slate-900 text-white font-semibold rounded-2xl shadow-xl active:scale-95 text-sm">關閉</button>
+          </div>
         </div>
       )}
     </div>

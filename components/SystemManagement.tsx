@@ -103,6 +103,17 @@ const SystemManagement: React.FC<SystemManagementProps> = ({ currentUser, onData
 
   const changelogs = [
     {
+      version: 'v2.184',
+      title: '正式啟用 Google 帳號實名驗證',
+      type: 'feature',
+      date: '2026-02-09',
+      logs: [
+        '正式對接 Firebase Auth (Google OAuth 2.0) 登入流程。',
+        '現在點擊登入會跳出官方 Google 登入視窗，確保帳號安全性。',
+        '保留「員工清單白名單」機制，僅允許公司授權之 Email 進行預約。'
+      ]
+    },
+    {
       version: 'v2.183',
       title: '確立開發自動化準則',
       type: 'feature',
